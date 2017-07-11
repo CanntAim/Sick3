@@ -40,15 +40,6 @@ Rect findPerson(Mat &mask){
   return maxPolyRectangle;
 }
 
-tuple<Rect2d,Rect2d> findFeet(tuple<Point,Vec3f,int> &ball){
-  float radius = get<1>(ball)[2];
-  Point rightFoot(cvRound(get<1>(ball)[0] + radius), cvRound(get<1>(ball)[1] - 0.5*radius));
-  Point leftFoot(cvRound(get<1>(ball)[0] - 2*radius), cvRound(get<1>(ball)[1] - 0.5*radius));
-  Rect2d rightFootRectangle(rightFoot.x, rightFoot.y, radius, radius*2);
-  Rect2d leftFootRectangle(leftFoot.x, leftFoot.y, radius, radius*2);
-  return make_tuple(leftFootRectangle,rightFootRectangle);
-}
-
 tuple<Point,Vec3f,int> findBall(Mat &grey, Rect &maxPolyRectangle, vector<tuple<Point,Vec3f,int>> &potentialBalls){
   vector<Vec3f> circles;
   HoughCircles(Mat(grey,maxPolyRectangle), circles, CV_HOUGH_GRADIENT, 1, grey.rows/8,200,25,0,100);
@@ -91,13 +82,6 @@ void drawBall(Mat &frame, Rect2d ballRectangle){
   rectangle(frame, ballRectangle, Scalar(0,255,0), 2, 8, 0);
 }
 
-void drawFeet(Mat &frame, Rect2d &leftFoot, Rect2d &rightFoot){
-  // Left Foot Rectangle
-  rectangle(frame, leftFoot, Scalar(0,255,0), 2, 8, 0);
-  // Right Foot Rectangle
-  rectangle(frame, rightFoot, Scalar(0,255,0), 2, 8, 0);
-}
-
 void drawPerson(Mat &frame, Rect &maxPolyRectangle){
   // Person Rectangle
   rectangle(frame, maxPolyRectangle.tl(), maxPolyRectangle.br(), Scalar(255,0,0), 2, 8, 0);
@@ -105,7 +89,7 @@ void drawPerson(Mat &frame, Rect &maxPolyRectangle){
 
 int main (int argc, const char * argv[])
 {
-    VideoCapture stream("/test_improved_downsample.avi"); // open the default camera (0) or file path
+    VideoCapture stream("/home/vanya/Videos/test_improved_downsample.avi"); // open the default camera (0) or file path
     if(!stream.isOpened())  // check if we succeeded
         return -1;
 
@@ -124,8 +108,6 @@ int main (int argc, const char * argv[])
     // Set up Trackers
     // Options are MIL, BOOSTING, KCF, TLD, MEDIANFLOW or GOTURN
     Ptr<Tracker> ballTracker = Tracker::create("MIL");
-    Ptr<Tracker> leftFootTracker = Tracker::create("MIL");
-    Ptr<Tracker> rightFootTracker = Tracker::create("MIL");
 
     // Frame data
     vector<tuple<Point,Vec3f,int>> potentialBalls;
@@ -135,7 +117,6 @@ int main (int argc, const char * argv[])
 
     for(;;){
       // Feet and Ball
-      tuple<Rect2d,Rect2d> feet;
       tuple<Point,Vec3f,int> ball;
       Rect2d ballRectangle;
       // Grab Frame
@@ -162,23 +143,11 @@ int main (int argc, const char * argv[])
         ballRectangle = ballBound(get<1>(ball));
 
         if(get<2>(ball)){
-          // Find Feet
-          feet = findFeet(ball);
-
           // Draw the found ball
           drawBall(crop, ballRectangle);
 
-          // Draw the found feet
-          drawFeet(crop, get<0>(feet), get<1>(feet));
-
           // Track Ball
           ballTracker->init(crop, ballRectangle);
-
-          // Track Left Foot
-          leftFootTracker->init(crop, get<0>(feet));
-
-          // Track Right Foot
-          rightFootTracker->init(crop, get<1>(feet));
 
           // Set Tracking Flag
           tracking = true;
@@ -191,14 +160,9 @@ int main (int argc, const char * argv[])
       {
         // Update tracking results
         ballTracker->update(crop, ballRectangle);
-        leftFootTracker->update(crop, get<0>(feet));
-        rightFootTracker->update(crop, get<1>(feet));
 
         // Draw the tracked ball
         drawBall(crop, ballRectangle);
-
-        // Draw the tracked feet
-        drawFeet(crop, get<0>(feet), get<1>(feet));
 
         // Display result
         imshow("Tracking", crop);
