@@ -58,6 +58,9 @@ tuple<Point,Vec3f,int> findBall(Mat &grey, Rect &maxPolyRectangle, vector<tuple<
         }
         // Check if existed sufficently long
         if(get<2>(potentialBalls[y]) > 3){
+          get<0>(potentialBalls[y]) = get<0>(potentialBalls[y]) + maxPolyRectangle.tl();
+          get<1>(potentialBalls[y])[0] = get<0>(potentialBalls[y]).x;
+          get<1>(potentialBalls[y])[1] = get<0>(potentialBalls[y]).y;
           return potentialBalls[y];
         }
       }
@@ -99,7 +102,6 @@ int main (int argc, const char * argv[])
     Mat foreground;
     Mat background;
     Mat grey;
-    Mat crop;
 
     // Background Subtraction Settings
     Ptr<BackgroundSubtractorMOG2> pMOG2;
@@ -135,7 +137,6 @@ int main (int argc, const char * argv[])
 
       // Find Person
       Rect maxPolyRectangle = findPerson(mask);
-      crop = Mat(frame,maxPolyRectangle);
 
       if(maxPolyRectangle.area() > 0){
         // Find Ball
@@ -143,29 +144,26 @@ int main (int argc, const char * argv[])
         ballRectangle = ballBound(get<1>(ball));
 
         if(get<2>(ball)){
-          // Draw the found ball
-          drawBall(crop, ballRectangle);
+          // Draw the Found Ball
+          drawBall(frame, ballRectangle);
 
           // Track Ball
-          ballTracker->init(crop, ballRectangle);
+          ballTracker->init(frame, ballRectangle);
 
           // Set Tracking Flag
           tracking = true;
 
-          imshow("Found", crop);
+          imshow("Found", frame);
         }
       }
 
       if(tracking)
       {
         // Update tracking results
-        ballTracker->update(crop, ballRectangle);
+        ballTracker->update(frame, ballRectangle);
 
         // Draw the tracked ball
-        drawBall(crop, ballRectangle);
-
-        // Display result
-        imshow("Tracking", crop);
+        drawBall(frame, ballRectangle);
       }
 
       imshow("frame", frame);
