@@ -90,6 +90,13 @@ void drawPerson(Mat &frame, Rect &maxPolyRectangle){
   rectangle(frame, maxPolyRectangle.tl(), maxPolyRectangle.br(), Scalar(255,0,0), 2, 8, 0);
 }
 
+bool compareTrackBoxes(Rect2d newBox, Rect2d oldBox){
+  Point centerOldBox = Point(oldBox.x+oldBox.width/2, oldBox.y+oldBox.height/2);
+  cout << centerOldBox.x << "," << centerOldBox.y << endl;
+  cout << newBox.contains(centerOldBox) << endl;
+  return newBox.contains(centerOldBox);
+}
+
 int main (int argc, const char * argv[])
 {
     VideoCapture stream("/home/vanya/Videos/test_improved_downsample.avi"); // open the default camera (0) or file path
@@ -103,13 +110,18 @@ int main (int argc, const char * argv[])
     Mat background;
     Mat grey;
 
+    // Feet and Ball
+    tuple<Point,Vec3f,int> ball;
+    Rect2d ballRectangle;
+    Rect2d oldballRectangle;
+
     // Background Subtraction Settings
     Ptr<BackgroundSubtractorMOG2> pMOG2;
     backgroundSubtraction(pMOG2);
 
     // Set up Trackers
     // Options are MIL, BOOSTING, KCF, TLD, MEDIANFLOW or GOTURN
-    Ptr<Tracker> ballTracker = Tracker::create("MIL");
+    Ptr<Tracker> ballTracker = Tracker::create("TLD");
 
     // Frame data
     vector<tuple<Point,Vec3f,int>> potentialBalls;
@@ -118,9 +130,6 @@ int main (int argc, const char * argv[])
     bool tracking = false;
 
     for(;;){
-      // Feet and Ball
-      tuple<Point,Vec3f,int> ball;
-      Rect2d ballRectangle;
       // Grab Frame
       stream >> frame;
 
@@ -138,7 +147,7 @@ int main (int argc, const char * argv[])
       // Find Person
       Rect maxPolyRectangle = findPerson(mask);
 
-      if(maxPolyRectangle.area() > 0){
+      if(maxPolyRectangle.area() > 0 and !tracking){
         // Find Ball
         ball = findBall(grey, maxPolyRectangle, potentialBalls);
         ballRectangle = ballBound(get<1>(ball));
@@ -159,8 +168,15 @@ int main (int argc, const char * argv[])
 
       if(tracking)
       {
-        // Update tracking results
+        // Make Copy of Previous Track Box
+        oldballRectangle = Rect(ballRectangle.x, ballRectangle.y,
+          ballRectangle.width, ballRectangle.height);
+
+        // Update Track Box
         ballTracker->update(frame, ballRectangle);
+
+        // Inconsistent Track Box
+        compareTrackBoxes(ballRectangle, oldballRectangle);
 
         // Draw the tracked ball
         drawBall(frame, ballRectangle);
