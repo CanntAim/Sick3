@@ -1,3 +1,4 @@
+#include <queue>
 #include <stdio.h>
 #include <GRT/GRT.h>
 #include <opencv2/opencv.hpp>
@@ -40,7 +41,7 @@ Rect findPerson(Mat &mask){
   return maxPolyRectangle;
 }
 
-tuple<Point,Vec3f,int> findBall(Mat &grey, Rect &maxPolyRectangle, vector<tuple<Point,Vec3f,int>> &potentialBalls){
+tuple<Point,Vec3f,int> findBall(Mat &grey, Rect maxPolyRectangle, vector<tuple<Point,Vec3f,int>> &potentialBalls){
   vector<Vec3f> circles;
   HoughCircles(Mat(grey,maxPolyRectangle), circles, CV_HOUGH_GRADIENT, 1, grey.rows/8,200,25,0,100);
 
@@ -85,16 +86,29 @@ void drawBall(Mat &frame, Rect2d ballRectangle){
   rectangle(frame, ballRectangle, Scalar(0,255,0), 2, 8, 0);
 }
 
-void drawPerson(Mat &frame, Rect &maxPolyRectangle){
-  // Person Rectangle
+void drawPerson(Mat &frame, Rect maxPolyRectangle){
   rectangle(frame, maxPolyRectangle.tl(), maxPolyRectangle.br(), Scalar(255,0,0), 2, 8, 0);
 }
 
-bool compareTrackBoxes(Rect2d newBox, Rect2d oldBox){
-  Point centerOldBox = Point(oldBox.x+oldBox.width/2, oldBox.y+oldBox.height/2);
-  cout << centerOldBox.x << "," << centerOldBox.y << endl;
-  cout << newBox.contains(centerOldBox) << endl;
-  return newBox.contains(centerOldBox);
+float calculateVelocity(int cur, int prev){
+  return ((float)cur-(float)prev);
+}
+
+void motionCheck(Rect2d newBox, Rect2d oldBox, queue<float> &velocity, queue<int> &position, int queueSize){
+  Point newCenter = Point(newBox.x+newBox.width/2, newBox.y+newBox.height/2);
+  Point oldCenter = Point(oldBox.x+oldBox.width/2, oldBox.y+oldBox.height/2);
+  if(oldBox.contains(newCenter)){
+    position.push(newCenter.y);
+    if(position.size() > 1){
+      velocity.push(calculateVelocity(newCenter.y,oldCenter.y));
+    }
+    if(position.size() > queueSize){
+      position.pop();
+    }
+    if(velocity.size() > queueSize){
+      velocity.pop();
+    }
+  }
 }
 
 int main (int argc, const char * argv[])
@@ -112,8 +126,13 @@ int main (int argc, const char * argv[])
 
     // Feet and Ball
     tuple<Point,Vec3f,int> ball;
+
+    // Verticle Position and Verticle Velocity
+    queue<int> position = queue<int>();
+    queue<float> velocity = queue<float>();
+
     Rect2d ballRectangle;
-    Rect2d oldballRectangle;
+    Rect2d ballRectangleOld;
 
     // Background Subtraction Settings
     Ptr<BackgroundSubtractorMOG2> pMOG2;
@@ -168,15 +187,17 @@ int main (int argc, const char * argv[])
 
       if(tracking)
       {
+        //cout << stream.get(CV_CAP_PROP_POS_FRAMES); << endl;
+
         // Make Copy of Previous Track Box
-        oldballRectangle = Rect(ballRectangle.x, ballRectangle.y,
+        ballRectangleOld = Rect(ballRectangle.x, ballRectangle.y,
           ballRectangle.width, ballRectangle.height);
 
         // Update Track Box
         ballTracker->update(frame, ballRectangle);
 
-        // Inconsistent Track Box
-        compareTrackBoxes(ballRectangle, oldballRectangle);
+        // Update Verticle Movement Data
+        motionCheck(ballRectangle, ballRectangleOld, velocity, position, 20);
 
         // Draw the tracked ball
         drawBall(frame, ballRectangle);
