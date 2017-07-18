@@ -94,7 +94,16 @@ float calculateVelocity(int cur, int prev){
   return ((float)cur-(float)prev);
 }
 
-void motionCheck(Rect2d newBox, Rect2d oldBox, queue<float> &velocity, queue<int> &position, int queueSize){
+float calculateWindowVelocity(queue<float> velocity, int queueSize){
+  float windowVelocity = 0;
+  while(velocity.size() > 0){
+    windowVelocity = windowVelocity + velocity.front();
+    velocity.pop();
+  }
+  return windowVelocity/(float) queueSize;
+}
+
+void motionCheck(Rect2d newBox, Rect2d oldBox, queue<float> &velocity, queue<int> &position, int queueSize, int curFrame){
   Point newCenter = Point(newBox.x+newBox.width/2, newBox.y+newBox.height/2);
   Point oldCenter = Point(oldBox.x+oldBox.width/2, oldBox.y+oldBox.height/2);
   if(oldBox.contains(newCenter)){
@@ -107,6 +116,9 @@ void motionCheck(Rect2d newBox, Rect2d oldBox, queue<float> &velocity, queue<int
     }
     if(velocity.size() > queueSize){
       velocity.pop();
+    }
+    if(velocity.size() == queueSize){
+      cout << calculateWindowVelocity(velocity, queueSize) << endl;
     }
   }
 }
@@ -187,8 +199,6 @@ int main (int argc, const char * argv[])
 
       if(tracking)
       {
-        //cout << stream.get(CV_CAP_PROP_POS_FRAMES); << endl;
-
         // Make Copy of Previous Track Box
         ballRectangleOld = Rect(ballRectangle.x, ballRectangle.y,
           ballRectangle.width, ballRectangle.height);
@@ -197,7 +207,10 @@ int main (int argc, const char * argv[])
         ballTracker->update(frame, ballRectangle);
 
         // Update Verticle Movement Data
-        motionCheck(ballRectangle, ballRectangleOld, velocity, position, 20);
+        motionCheck(
+          ballRectangle, ballRectangleOld,
+          velocity, position, 20,
+          stream.get(CV_CAP_PROP_POS_FRAMES));
 
         // Draw the tracked ball
         drawBall(frame, ballRectangle);
