@@ -103,7 +103,8 @@ float calculateWindowVelocity(queue<float> velocity, int queueSize){
   return windowVelocity/(float) queueSize;
 }
 
-void motionCheck(Rect2d newBox, Rect2d oldBox, queue<float> &velocity, queue<int> &position, int queueSize, int curFrame){
+bool motionCheck(Rect2d newBox, Rect2d oldBox, queue<float> &velocity, queue<int> &position, int queueSize){
+  float oldWindowVelocity = calculateWindowVelocity(velocity, queueSize);
   Point newCenter = Point(newBox.x+newBox.width/2, newBox.y+newBox.height/2);
   Point oldCenter = Point(oldBox.x+oldBox.width/2, oldBox.y+oldBox.height/2);
   if(oldBox.contains(newCenter)){
@@ -118,19 +119,27 @@ void motionCheck(Rect2d newBox, Rect2d oldBox, queue<float> &velocity, queue<int
       velocity.pop();
     }
     if(velocity.size() == queueSize){
-      cout << calculateWindowVelocity(velocity, queueSize) << endl;
+      float newWindowVelocity = calculateWindowVelocity(velocity, queueSize);
+      cout << newWindowVelocity << endl;
+      cout << oldWindowVelocity << endl;
+      if(oldWindowVelocity > 0 && newWindowVelocity < 0){
+          return true;
+      }
     }
   }
+  return false;
 }
 
 int main (int argc, const char * argv[])
 {
     VideoCapture stream("/home/vanya/Videos/test_improved_downsample.avi"); // open the default camera (0) or file path
+    VideoCapture capture("/home/vanya/Videos/test_improved_downsample.avi");
     if(!stream.isOpened())  // check if we succeeded
         return -1;
 
     // Frame Layers
     Mat frame;
+    Mat still;
     Mat mask;
     Mat foreground;
     Mat background;
@@ -207,10 +216,13 @@ int main (int argc, const char * argv[])
         ballTracker->update(frame, ballRectangle);
 
         // Update Verticle Movement Data
-        motionCheck(
+        if(motionCheck(
           ballRectangle, ballRectangleOld,
-          velocity, position, 20,
-          stream.get(CV_CAP_PROP_POS_FRAMES));
+          velocity, position, 20)){
+            capture.set(1,stream.get(CV_CAP_PROP_POS_FRAMES)-10);
+            capture >> still;
+            imshow("touch", still);
+          }
 
         // Draw the tracked ball
         drawBall(frame, ballRectangle);
