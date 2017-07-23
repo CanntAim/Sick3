@@ -103,7 +103,7 @@ float calculateWindowVelocity(queue<float> velocity, int queueSize){
   return windowVelocity/(float) queueSize;
 }
 
-populateSmoothQueue(Rect2d newBox, Rect2d oldBox,queue<float> &smooth, queue<float> &velocity, queue<int> &position,
+void populateQueues(Rect2d newBox, Rect2d oldBox,queue<float> &smooth, queue<float> &velocity, queue<int> &position,
   int maxQueueSize){
   Point newCenter = Point(newBox.x+newBox.width/2, newBox.y+newBox.height/2);
   Point oldCenter = Point(oldBox.x+oldBox.width/2, oldBox.y+oldBox.height/2);
@@ -124,6 +124,21 @@ populateSmoothQueue(Rect2d newBox, Rect2d oldBox,queue<float> &smooth, queue<flo
     if(smooth.size() > maxQueueSize){
       smooth.pop();
     }
+  }
+}
+
+void populateAccelerationQueue(queue<float> smooth, queue<float> &acceleration){
+  int maxQueueSize = smooth.size() - 1;
+  while(smooth.size() > 1){
+    float first = smooth.front();
+    smooth.pop();
+    float second = smooth.front();
+    smooth.pop();
+    float accel = first - second;
+    acceleration.push(accel);
+  }
+  if(acceleration.size() > maxQueueSize){
+    acceleration.pop();
   }
 }
 
@@ -150,6 +165,7 @@ int main (int argc, const char * argv[])
     queue<int> position = queue<int>();
     queue<float> velocity = queue<float>();
     queue<float> smooth = queue<float>();
+    queue<float> acceleration = queue<float>();
 
     Rect2d ballRectangle;
     Rect2d ballRectangleOld;
@@ -214,18 +230,19 @@ int main (int argc, const char * argv[])
         // Update Track Box
         ballTracker->update(frame, ballRectangle);
 
-        // Update Verticle Movement Data
-        populateSmoothQueue(
+        // Update Verticle Ball Movmement Data
+        populateQueues(
           ballRectangle, ballRectangleOld,
           smooth, velocity, position, 20);
 
         populateAccelerationQueue(smooth, acceleration);
+        cout << acceleration.front() << endl;
 
-        if(){
-          capture.set(1,stream.get(CV_CAP_PROP_POS_FRAMES)-10);
-          capture >> still;
-          imshow("touch", still);
-          }
+        // if(){
+        //   capture.set(1,stream.get(CV_CAP_PROP_POS_FRAMES)-10);
+        //   capture >> still;
+        //   imshow("touch", still);
+        //   }
 
         // Draw the tracked ball
         drawBall(frame, ballRectangle);
