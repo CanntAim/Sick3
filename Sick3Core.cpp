@@ -103,8 +103,8 @@ float calculateWindowVelocity(queue<float> velocity, int queueSize){
   return windowVelocity/(float) queueSize;
 }
 
-bool motionCheck(Rect2d newBox, Rect2d oldBox, queue<float> &velocity, queue<int> &position, int queueSize){
-  float oldWindowVelocity = calculateWindowVelocity(velocity, queueSize);
+populateSmoothQueue(Rect2d newBox, Rect2d oldBox,queue<float> &smooth, queue<float> &velocity, queue<int> &position,
+  int maxQueueSize){
   Point newCenter = Point(newBox.x+newBox.width/2, newBox.y+newBox.height/2);
   Point oldCenter = Point(oldBox.x+oldBox.width/2, oldBox.y+oldBox.height/2);
   if(oldBox.contains(newCenter)){
@@ -112,23 +112,21 @@ bool motionCheck(Rect2d newBox, Rect2d oldBox, queue<float> &velocity, queue<int
     if(position.size() > 1){
       velocity.push(calculateVelocity(newCenter.y,oldCenter.y));
     }
-    if(position.size() > queueSize){
+    if(position.size() > maxQueueSize){
       position.pop();
     }
-    if(velocity.size() > queueSize){
+    if(velocity.size() > maxQueueSize){
       velocity.pop();
     }
-    if(velocity.size() == queueSize){
-      float newWindowVelocity = calculateWindowVelocity(velocity, queueSize);
-      cout << newWindowVelocity << endl;
-      cout << oldWindowVelocity << endl;
-      if(oldWindowVelocity > 0 && newWindowVelocity < 0){
-          return true;
-      }
+    if(velocity.size() > 0){
+      smooth.push(calculateWindowVelocity(velocity, velocity.size()));
+    }
+    if(smooth.size() > maxQueueSize){
+      smooth.pop();
     }
   }
-  return false;
 }
+
 
 int main (int argc, const char * argv[])
 {
@@ -151,6 +149,7 @@ int main (int argc, const char * argv[])
     // Verticle Position and Verticle Velocity
     queue<int> position = queue<int>();
     queue<float> velocity = queue<float>();
+    queue<float> smooth = queue<float>();
 
     Rect2d ballRectangle;
     Rect2d ballRectangleOld;
@@ -216,12 +215,16 @@ int main (int argc, const char * argv[])
         ballTracker->update(frame, ballRectangle);
 
         // Update Verticle Movement Data
-        if(motionCheck(
+        populateSmoothQueue(
           ballRectangle, ballRectangleOld,
-          velocity, position, 20)){
-            capture.set(1,stream.get(CV_CAP_PROP_POS_FRAMES)-10);
-            capture >> still;
-            imshow("touch", still);
+          smooth, velocity, position, 20);
+
+        populateAccelerationQueue(smooth, acceleration);
+
+        if(){
+          capture.set(1,stream.get(CV_CAP_PROP_POS_FRAMES)-10);
+          capture >> still;
+          imshow("touch", still);
           }
 
         // Draw the tracked ball
