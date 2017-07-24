@@ -1,4 +1,5 @@
 #include <queue>
+#include <list>
 #include <stdio.h>
 #include <GRT/GRT.h>
 #include <opencv2/opencv.hpp>
@@ -90,58 +91,82 @@ void drawPerson(Mat &frame, Rect maxPolyRectangle){
   rectangle(frame, maxPolyRectangle.tl(), maxPolyRectangle.br(), Scalar(255,0,0), 2, 8, 0);
 }
 
-float calculateVelocity(int cur, int prev){
+float calculateDiff(int cur, int prev){
   return ((float)cur-(float)prev);
 }
 
-float calculateWindowVelocity(queue<float> velocity, int queueSize){
-  float windowVelocity = 0;
-  while(velocity.size() > 0){
-    windowVelocity = windowVelocity + velocity.front();
-    velocity.pop();
+float calculateWindow(queue<float> window){
+  float sum = 0;
+  while(window.size() > 0){
+    sum = sum + window.front();
+    window.pop();
   }
-  return windowVelocity/(float) queueSize;
+  return sum/(float) window.size();
 }
 
-void populateQueues(Rect2d newBox, Rect2d oldBox,queue<float> &smooth, queue<float> &velocity, queue<int> &position,
-  int maxQueueSize){
+/* We monitor the position of the ball as it's moving up and down. Sudden, drastic, changes in position
+we ignore. If the center of the new box doesn't fall into the box in the previous frame it's unlikely to
+be right. We continue logging in the window the position right afterward until the next significant change.
+We don't know when the tracker gets back to tracking the ball again since two concurrent drastic changes doesn't
+tell us if the tracker corrected itself or if it jumped to another incorrect location.
+
+We create a window first for position and then using position create a window for velocity. The velocity window
+elimanates large outliers using the method above. Our velocity window is still noisy. The tracker, while sufficently
+accurate, still tends to be erratic. While the movement of the ball tends to a general direction it's constantly making
+small adjustments counter to it's overall movement. For this we apply smoothing. Meaning we take the weighted
+average of the window (using an applied kernel). Using these "smooth" value we can monitor a change in direction of velocity.
+The means monitoring when velocity goes from + to - or from - to +. You can choose to smooth position or velocity
+*/
+void populateWindow(Rect2d newBox, Rect2d oldBox,queue<float> &smooth,
+  queue<int> &acceleration, queue<float> &velocity, queue<float> &position,
+  int maxBandwidth, int whatToSmooth){
   Point newCenter = Point(newBox.x+newBox.width/2, newBox.y+newBox.height/2);
   Point oldCenter = Point(oldBox.x+oldBox.width/2, oldBox.y+oldBox.height/2);
   if(oldBox.contains(newCenter)){
     position.push(newCenter.y);
+
     if(position.size() > 1){
-      velocity.push(calculateVelocity(newCenter.y,oldCenter.y));
+      velocity.push(calculateDiff(newCenter.y,oldCenter.y));
     }
-    if(position.size() > maxQueueSize){
+    if(velocity.size() > 1){
+      acceleration.push(calculateDiff(newCenter.y,oldCenter.y));
+    }
+
+    if(position.size() > maxBandwidth){
       position.pop();
     }
-    if(velocity.size() > maxQueueSize){
+    if(velocity.size() > maxBandwidth){
       velocity.pop();
     }
-    if(velocity.size() > 0){
-      smooth.push(calculateWindowVelocity(velocity, velocity.size()));
+    if(acceleration.size() > maxBandwidth){
+      acceleration.pop();
     }
-    if(smooth.size() > maxQueueSize){
+
+    if(position.size() > 0 && whatToSmooth == 1){
+      smooth.push(calculateWindow(position));
+    }
+    else if(velocity.size() > 0 && whatToSmooth == 2){
+      smooth.push(calculateWindow(velocity));
+    }
+    else if(acceleration.size() > 0 && whatToSmooth == 3){
+      smooth.push(calculateWindow(acceleration));
+    }
+    if(smooth.size() > maxBandwidth){
       smooth.pop();
     }
   }
 }
 
-void populateAccelerationQueue(queue<float> smooth, queue<float> &acceleration){
-  int maxQueueSize = smooth.size() - 1;
-  while(smooth.size() > 1){
-    float first = smooth.front();
-    smooth.pop();
-    float second = smooth.front();
-    smooth.pop();
-    float accel = first - second;
-    acceleration.push(accel);
-  }
-  if(acceleration.size() > maxQueueSize){
-    acceleration.pop();
+list<float> kernel(int bandwidth, int kernelType){
+  list<float> weight = new list<float>();
+  switch(kernelType){
+    case 1 :
+
+    case 2 :
+
+    case 3 :
   }
 }
-
 
 int main (int argc, const char * argv[])
 {
@@ -162,7 +187,7 @@ int main (int argc, const char * argv[])
     tuple<Point,Vec3f,int> ball;
 
     // Verticle Position and Verticle Velocity
-    queue<int> position = queue<int>();
+    queue<int> position = queue<float>();
     queue<float> velocity = queue<float>();
     queue<float> smooth = queue<float>();
     queue<float> acceleration = queue<float>();
@@ -231,12 +256,12 @@ int main (int argc, const char * argv[])
         ballTracker->update(frame, ballRectangle);
 
         // Update Verticle Ball Movmement Data
-        populateQueues(
+        populateWindow(
           ballRectangle, ballRectangleOld,
-          smooth, velocity, position, 20);
+          acceleration, smooth, velocity, position, 20, 1);
 
-        populateAccelerationQueue(smooth, acceleration);
-        cout << acceleration.front() << endl;
+        //cout << acceleration.front() << endl;
+        cout << smooth.front() << endl;
 
         // if(){
         //   capture.set(1,stream.get(CV_CAP_PROP_POS_FRAMES)-10);
@@ -251,14 +276,8 @@ int main (int argc, const char * argv[])
       imshow("frame", frame);
       if(waitKey(1) >= 0) break;
     }
-    // The camera will be deinitialized automatically in VideoCapture destructor
 
-    //Print the GRT version
-    cout << "GRT Version: " << GRTBase::getGRTVersion() << endl;
-    cout << "OpenCV version : " << CV_VERSION << endl;
-    cout << "Major version : " << CV_MAJOR_VERSION << endl;
-    cout << "Minor version : " << CV_MINOR_VERSION << endl;
-    cout << "Subminor version : " << CV_SUBMINOR_VERSION << endl;
+    // The camera will be deinitialized automatically in VideoCapture destructor
 
     return EXIT_SUCCESS;
 }
