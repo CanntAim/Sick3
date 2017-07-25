@@ -25,30 +25,30 @@ void backgroundSubtraction(Ptr<BackgroundSubtractorMOG2> &pMOG2){
 Rect findPerson(Mat &mask){
   vector<vector<Point>> contours;
   vector<Vec4i> hierarchy;
-  Rect maxPolyRectangle;
+  Rect personRectangle;
   findContours(mask, contours, hierarchy, CV_RETR_EXTERNAL,  CV_CHAIN_APPROX_NONE, cv::Point(0, 0));
-  int maxPolyRectangleArea = 0;
+  int personRectangleArea = 0;
   vector<Rect> bounds(contours.size());
   vector<vector<Point>> contoursPoly(contours.size());
   for(int i = 0; i < contours.size(); i++){
     approxPolyDP(cv::Mat(contours[i]), contoursPoly[i], 3, true);
     for(int i = 0; i < contoursPoly.size(); i++){
-      if(boundingRect(Mat(contoursPoly[i])).area() > maxPolyRectangleArea){
-        maxPolyRectangle = boundingRect(Mat(contoursPoly[i]));
-        maxPolyRectangleArea = maxPolyRectangle.area();
+      if(boundingRect(Mat(contoursPoly[i])).area() > personRectangleArea){
+        personRectangle = boundingRect(Mat(contoursPoly[i]));
+        personRectangleArea = personRectangle.area();
       }
     }
   }
-  return maxPolyRectangle;
+  return personRectangle;
 }
 
-tuple<Point,Vec3f,int> findBall(Mat &grey, Rect maxPolyRectangle, vector<tuple<Point,Vec3f,int>> &potentialBalls){
+tuple<Point,Vec3f,int> findBall(Mat &grey, Rect personRectangle, vector<tuple<Point,Vec3f,int>> &potentialBalls){
   vector<Vec3f> circles;
-  HoughCircles(Mat(grey,maxPolyRectangle), circles, CV_HOUGH_GRADIENT, 1, grey.rows/8,200,25,0,100);
+  HoughCircles(Mat(grey,personRectangle), circles, CV_HOUGH_GRADIENT, 1, grey.rows/8,200,25,0,100);
 
   for( size_t x = 0; x < circles.size(); x++ ){
-    double heightThreshold = (double)(maxPolyRectangle.height)/5.0;
-    if (circles[x][1] > maxPolyRectangle.height - heightThreshold){
+    double heightThreshold = (double)(personRectangle.height)/5.0;
+    if (circles[x][1] > personRectangle.height - heightThreshold){
       bool isNewPotentialBall = true;
       Point center(cvRound(circles[x][0]), cvRound(circles[x][1]));
       for(size_t y = 0; y < potentialBalls.size(); y++ ){
@@ -60,7 +60,7 @@ tuple<Point,Vec3f,int> findBall(Mat &grey, Rect maxPolyRectangle, vector<tuple<P
         }
         // Check if existed sufficently long
         if(get<2>(potentialBalls[y]) > 3){
-          get<0>(potentialBalls[y]) = get<0>(potentialBalls[y]) + maxPolyRectangle.tl();
+          get<0>(potentialBalls[y]) = get<0>(potentialBalls[y]) + personRectangle.tl();
           get<1>(potentialBalls[y])[0] = get<0>(potentialBalls[y]).x;
           get<1>(potentialBalls[y])[1] = get<0>(potentialBalls[y]).y;
           return potentialBalls[y];
@@ -87,12 +87,12 @@ void drawBall(Mat &frame, Rect2d ballRectangle){
   rectangle(frame, ballRectangle, Scalar(0,255,0), 2, 8, 0);
 }
 
-void drawPerson(Mat &frame, Rect maxPolyRectangle){
-  rectangle(frame, maxPolyRectangle.tl(), maxPolyRectangle.br(), Scalar(255,0,0), 2, 8, 0);
+void drawPerson(Mat &frame, Rect personRectangle){
+  rectangle(frame, personRectangle.tl(), personRectangle.br(), Scalar(255,0,0), 2, 8, 0);
 }
 
-float calculateDiff(int cur, int prev){
-  return ((float)cur-(float)prev);
+float calculateDifference(float cur, float prev){
+  return (cur-prev);
 }
 
 float calculateWindow(queue<float> window){
@@ -104,32 +104,22 @@ float calculateWindow(queue<float> window){
   return sum/(float) window.size();
 }
 
-/* We monitor the position of the ball as it's moving up and down. Sudden, drastic, changes in position
-we ignore. If the center of the new box doesn't fall into the box in the previous frame it's unlikely to
-be right. We continue logging in the window the position right afterward until the next significant change.
-We don't know when the tracker gets back to tracking the ball again since two concurrent drastic changes doesn't
-tell us if the tracker corrected itself or if it jumped to another incorrect location.
-
-We create a window first for position and then using position create a window for velocity. The velocity window
-elimanates large outliers using the method above. Our velocity window is still noisy. The tracker, while sufficently
-accurate, still tends to be erratic. While the movement of the ball tends to a general direction it's constantly making
-small adjustments counter to it's overall movement. For this we apply smoothing. Meaning we take the weighted
-average of the window (using an applied kernel). Using these "smooth" value we can monitor a change in direction of velocity.
-The means monitoring when velocity goes from + to - or from - to +. You can choose to smooth position or velocity
-*/
 void populateWindow(Rect2d newBox, Rect2d oldBox,queue<float> &smooth,
   queue<int> &acceleration, queue<float> &velocity, queue<float> &position,
   int maxBandwidth, int whatToSmooth){
   Point newCenter = Point(newBox.x+newBox.width/2, newBox.y+newBox.height/2);
   Point oldCenter = Point(oldBox.x+oldBox.width/2, oldBox.y+oldBox.height/2);
+  float oldVelocity = 0.0;
+  float newVelocity = 0.0;
   if(oldBox.contains(newCenter)){
     position.push(newCenter.y);
-
     if(position.size() > 1){
-      velocity.push(calculateDiff(newCenter.y,oldCenter.y));
+      oldVelocity = velocity.front();
+      velocity.push(calculateDifference(newCenter.y,oldCenter.y));
+      newVelocity = velocity.front();
     }
     if(velocity.size() > 1){
-      acceleration.push(calculateDiff(newCenter.y,oldCenter.y));
+      acceleration.push(calculateDifference(newVelocity,oldVelocity);
     }
 
     if(position.size() > maxBandwidth){
@@ -225,11 +215,11 @@ int main (int argc, const char * argv[])
       clean(mask);
 
       // Find Person
-      Rect maxPolyRectangle = findPerson(mask);
+      Rect personRectangle = findPerson(mask);
 
-      if(maxPolyRectangle.area() > 0 and !tracking){
+      if(personRectangle.area() > 0 and !tracking){
         // Find Ball
-        ball = findBall(grey, maxPolyRectangle, potentialBalls);
+        ball = findBall(grey, personRectangle, potentialBalls);
         ballRectangle = ballBound(get<1>(ball));
 
         if(get<2>(ball)){
