@@ -1,13 +1,4 @@
-#include <queue>
-#include <list>
-#include <stdio.h>
-#include <GRT/GRT.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/tracking.hpp>
-
-using namespace GRT;
-using namespace std;
-using namespace cv;
+#include "Sick3Core.h"
 
 void clean(Mat &mask){
   erode(mask,mask,Mat(),Point(-1, -1),2,1,1);
@@ -105,7 +96,7 @@ float calculateWindow(queue<float> window){
 }
 
 void populateWindow(Rect2d newBox, Rect2d oldBox,queue<float> &smooth,
-  queue<int> &acceleration, queue<float> &velocity, queue<float> &position,
+  queue<float> &acceleration, queue<float> &velocity, queue<float> &position,
   int maxBandwidth, int whatToSmooth){
   Point newCenter = Point(newBox.x+newBox.width/2, newBox.y+newBox.height/2);
   Point oldCenter = Point(oldBox.x+oldBox.width/2, oldBox.y+oldBox.height/2);
@@ -119,7 +110,7 @@ void populateWindow(Rect2d newBox, Rect2d oldBox,queue<float> &smooth,
       newVelocity = velocity.front();
     }
     if(velocity.size() > 1){
-      acceleration.push(calculateDifference(newVelocity,oldVelocity);
+      acceleration.push(calculateDifference(newVelocity,oldVelocity));
     }
 
     if(position.size() > maxBandwidth){
@@ -147,21 +138,43 @@ void populateWindow(Rect2d newBox, Rect2d oldBox,queue<float> &smooth,
   }
 }
 
-list<float> kernel(int bandwidth, int kernelType){
-  list<float> weight = new list<float>();
-  switch(kernelType){
-    case 1 :
 
-    case 2 :
 
-    case 3 :
+vector<float> kernel(vector<int> weights, int bandwidth){
+  vector<float> slopes;
+  vector<float> calculatedWeights;
+  size_t windowIndex = 0;
+  size_t slopeIndex = -1;
+  for(size_t i = 0; i < weights.size()-1; i++){
+    slopes.push_back(weights[i+1]-weights[i]);
   }
+  calculatedWeights.push_back(weights[0]);
+  while((int)windowIndex < (int)bandwidth){
+    int slopeSize = slopes.size();
+    int remain = windowIndex % (bandwidth/slopeSize);
+    calculatedWeights.push_back(calculatedWeights.back() +
+    slopes[slopeIndex]/(bandwidth/slopeSize));
+    if(remain == 0){
+      slopeIndex++;
+    }
+    windowIndex++;
+  }
+
+  int sumCalculatedWeights = 0;
+  for(size_t i = 0; i < calculatedWeights.size(); i++){
+    sumCalculatedWeights = sumCalculatedWeights + calculatedWeights[i];
+  }
+  for(size_t i = 0; i < calculatedWeights.size(); i++){
+    calculatedWeights[i] = calculatedWeights[i]/sumCalculatedWeights;
+    cout << calculatedWeights[i] << endl;
+  }
+  return calculatedWeights;
 }
 
 int main (int argc, const char * argv[])
 {
-    VideoCapture stream("/home/vanya/Videos/test_improved_downsample.avi"); // open the default camera (0) or file path
-    VideoCapture capture("/home/vanya/Videos/test_improved_downsample.avi");
+    VideoCapture stream("/home/vanya/Videos/Sick3/test_improved_downsample.avi"); // open the default camera (0) or file path
+    VideoCapture capture("/home/vanya/Videos/Sick3/test_improved_downsample.avi");
     if(!stream.isOpened())  // check if we succeeded
         return -1;
 
@@ -173,11 +186,18 @@ int main (int argc, const char * argv[])
     Mat background;
     Mat grey;
 
+    // Kernel Weights
+    vector<int> weights;
+    weights.push_back(0);
+    weights.push_back(10);
+    weights.push_back(0);
+    vector<float> normalizedWeights = kernel(weights, 20);
+
     // Feet and Ball
     tuple<Point,Vec3f,int> ball;
 
     // Verticle Position and Verticle Velocity
-    queue<int> position = queue<float>();
+    queue<float> position = queue<float>();
     queue<float> velocity = queue<float>();
     queue<float> smooth = queue<float>();
     queue<float> acceleration = queue<float>();

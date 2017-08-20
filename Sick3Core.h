@@ -6,6 +6,10 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/tracking.hpp>
 
+using namespace GRT;
+using namespace std;
+using namespace cv;
+
 void clean(Mat &mask);
 
 /* BACKGROUND SUBTRACTION*/
@@ -61,7 +65,7 @@ The means monitoring when velocity goes from + to - or from - to +. You can choo
 */
 void populateWindow(Rect2d newBox, Rect2d oldBox,
   queue<float> &smooth,
-  queue<int> &acceleration, queue<float> &velocity, queue<float> &position,
+  queue<float> &acceleration, queue<float> &velocity, queue<float> &position,
   int maxBandwidth, int toSmooth);
 
 /* CALCULATE DIFFERENCE */
@@ -94,15 +98,15 @@ Rect2d ballBound(Vec3f &ball);
 
 /* CALCULATE FINDPERSON */
 /*
-/* mask - The Vec3f represnting a ball,
+/* mask - The mask created by the MOG2 algorithm.
 
-Get the bound around the discov
+Get the bound around the person in the MOG2 mask.
 */
 Rect findPerson(Mat &mask);
 
 /* CALCULATE FINDBALL */
 /*
-/* grey - The Vec3f represnting a ball,
+/* grey - The greyscale frame,
 /* personRectangle - rectangle around found person
 /* potentialBalls - container for the potential balls that we found.
 
@@ -111,3 +115,4 @@ Get the bound around the discovered ball.
 tuple<Point,Vec3f,int> findBall(Mat &grey,
   Rect personRectangle,
   vector<tuple<Point,Vec3f,int>> &potentialBalls);
+#endif
