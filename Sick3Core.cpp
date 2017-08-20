@@ -152,11 +152,11 @@ vector<float> kernel(vector<int> weights, int bandwidth){
   while((int)windowIndex < (int)bandwidth){
     int slopeSize = slopes.size();
     int remain = windowIndex % (bandwidth/slopeSize);
-    calculatedWeights.push_back(calculatedWeights.back() +
-    slopes[slopeIndex]/(bandwidth/slopeSize));
     if(remain == 0){
       slopeIndex++;
     }
+    calculatedWeights.push_back(calculatedWeights.back() +
+    slopes[slopeIndex]/(bandwidth/slopeSize));
     windowIndex++;
   }
 
@@ -188,8 +188,10 @@ int main (int argc, const char * argv[])
 
     // Kernel Weights
     vector<int> weights;
-    weights.push_back(0);
     weights.push_back(10);
+    weights.push_back(8);
+    weights.push_back(6);
+    weights.push_back(4);
     weights.push_back(0);
     vector<float> normalizedWeights = kernel(weights, 20);
 
