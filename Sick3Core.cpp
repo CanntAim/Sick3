@@ -82,57 +82,60 @@ void drawPerson(Mat &frame, Rect personRectangle){
   rectangle(frame, personRectangle.tl(), personRectangle.br(), Scalar(255,0,0), 2, 8, 0);
 }
 
-float calculateDifference(float cur, float prev){
+int calculateDifference(int cur, int prev){
   return (cur-prev);
 }
 
-float calculateWindow(queue<float> window){
-  float sum = 0;
-  while(window.size() > 0){
-    sum = sum + window.front();
+float calculateWindow(queue<int> window, vector<float> weights){
+  int index = 0;
+  float value = 0;
+  while(window.size() && weights.size() > index){
+    value = value + (float)window.front()*weights[index];
     window.pop();
+    index++;
   }
-  return sum/(float) window.size();
+  return value;
 }
 
-void populateWindow(Rect2d newBox, Rect2d oldBox,queue<float> &smooth,
-  queue<float> &acceleration, queue<float> &velocity, queue<float> &position,
-  int maxBandwidth, int whatToSmooth){
+void populateWindow(Rect2d newBox, Rect2d oldBox,
+  queue<float> &smooth,
+  queue<int> &acceleration, queue<int> &velocity, queue<int> &position,
+  vector<float> weights, int toSmooth){
   Point newCenter = Point(newBox.x+newBox.width/2, newBox.y+newBox.height/2);
   Point oldCenter = Point(oldBox.x+oldBox.width/2, oldBox.y+oldBox.height/2);
-  float oldVelocity = 0.0;
-  float newVelocity = 0.0;
+  int oldVelocity = 0;
+  int newVelocity = 0;
   if(oldBox.contains(newCenter)){
     position.push(newCenter.y);
     if(position.size() > 1){
       oldVelocity = velocity.front();
-      velocity.push(calculateDifference(newCenter.y,oldCenter.y));
+      velocity.push(calculateDifference(newCenter.y, oldCenter.y));
       newVelocity = velocity.front();
     }
     if(velocity.size() > 1){
-      acceleration.push(calculateDifference(newVelocity,oldVelocity));
+      acceleration.push(calculateDifference(newVelocity, oldVelocity));
     }
 
-    if(position.size() > maxBandwidth){
+    if(position.size() >= weights.size()){
       position.pop();
     }
-    if(velocity.size() > maxBandwidth){
+    if(velocity.size() >= weights.size()){
       velocity.pop();
     }
-    if(acceleration.size() > maxBandwidth){
+    if(acceleration.size() >= weights.size()){
       acceleration.pop();
     }
 
-    if(position.size() > 0 && whatToSmooth == 1){
-      smooth.push(calculateWindow(position));
+    if(position.size() > 0 && toSmooth == 1){
+      smooth.push(calculateWindow(position, weights));
     }
-    else if(velocity.size() > 0 && whatToSmooth == 2){
-      smooth.push(calculateWindow(velocity));
+    else if(velocity.size() > 0 && toSmooth == 2){
+      smooth.push(calculateWindow(velocity, weights));
     }
-    else if(acceleration.size() > 0 && whatToSmooth == 3){
-      smooth.push(calculateWindow(acceleration));
+    else if(acceleration.size() > 0 && toSmooth == 3){
+      smooth.push(calculateWindow(acceleration, weights));
     }
-    if(smooth.size() > maxBandwidth){
+    if(smooth.size() > weights.size()){
       smooth.pop();
     }
   }
@@ -166,7 +169,6 @@ vector<float> kernel(vector<int> weights, int bandwidth){
   }
   for(size_t i = 0; i < calculatedWeights.size(); i++){
     calculatedWeights[i] = calculatedWeights[i]/sumCalculatedWeights;
-    cout << calculatedWeights[i] << endl;
   }
   return calculatedWeights;
 }
@@ -188,10 +190,10 @@ int main (int argc, const char * argv[])
 
     // Kernel Weights
     vector<int> weights;
+    weights.push_back(0);
+    weights.push_back(3);
     weights.push_back(10);
-    weights.push_back(8);
-    weights.push_back(6);
-    weights.push_back(4);
+    weights.push_back(3);
     weights.push_back(0);
     vector<float> normalizedWeights = kernel(weights, 20);
 
@@ -199,10 +201,10 @@ int main (int argc, const char * argv[])
     tuple<Point,Vec3f,int> ball;
 
     // Verticle Position and Verticle Velocity
-    queue<float> position = queue<float>();
-    queue<float> velocity = queue<float>();
+    queue<int> acceleration = queue<int>();
+    queue<int> position = queue<int>();
+    queue<int> velocity = queue<int>();
     queue<float> smooth = queue<float>();
-    queue<float> acceleration = queue<float>();
 
     Rect2d ballRectangle;
     Rect2d ballRectangleOld;
@@ -270,10 +272,11 @@ int main (int argc, const char * argv[])
         // Update Verticle Ball Movmement Data
         populateWindow(
           ballRectangle, ballRectangleOld,
-          acceleration, smooth, velocity, position, 20, 1);
+          smooth, acceleration, velocity, position, normalizedWeights, 1);
 
-        //cout << acceleration.front() << endl;
-        cout << smooth.front() << endl;
+        if(smooth.size()){
+          cout << smooth.front() << endl;
+        }
 
         // if(){
         //   capture.set(1,stream.get(CV_CAP_PROP_POS_FRAMES)-10);

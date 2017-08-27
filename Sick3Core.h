@@ -65,8 +65,8 @@ The means monitoring when velocity goes from + to - or from - to +. You can choo
 */
 void populateWindow(Rect2d newBox, Rect2d oldBox,
   queue<float> &smooth,
-  queue<float> &acceleration, queue<float> &velocity, queue<float> &position,
-  int maxBandwidth, int toSmooth);
+  queue<int> &acceleration, queue<int> &velocity, queue<int> &position,
+  vector<float> weights, int toSmooth);
 
 /* CALCULATE DIFFERENCE */
 /*
@@ -77,7 +77,7 @@ Use to calculate the difference between two values. Is generic because we might
 calculate difference between two positions to get velocity or the difference between
 two velocities to get acceleration.
 */
-float calculateDifference(float cur, float prev);
+int calculateDifference(int cur, int prev);
 
 /* CALCULATE WINDOW */
 /*
@@ -86,7 +86,7 @@ float calculateDifference(float cur, float prev);
 We can calculate for any window this can be position, velocity, acceleration, smooth,
 etc.
 */
-float calculateWindow(queue<float> window);
+float calculateWindow(queue<int> window, vector<float> weights);
 
 /* CALCULATE BALLBOUND */
 /*
