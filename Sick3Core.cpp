@@ -86,62 +86,60 @@ int calculateDifference(int cur, int prev){
   return (cur-prev);
 }
 
-float calculateWindow(queue<int> window, vector<float> weights){
+float calculateWindow(deque<int> window, vector<float> weights){
   int index = 0;
   float value = 0;
   while(window.size() && weights.size() > index){
     value = value + (float)window.front()*weights[index];
-    window.pop();
+    window.pop_front();
     index++;
   }
   return value;
 }
 
 void populateWindow(Rect2d newBox, Rect2d oldBox,
-  queue<float> &smooth,
-  queue<int> &acceleration, queue<int> &velocity, queue<int> &position,
+  deque<float> &smooth,
+  deque<int> &acceleration, deque<int> &velocity, deque<int> &position,
   vector<float> weights, int toSmooth){
   Point newCenter = Point(newBox.x+newBox.width/2, newBox.y+newBox.height/2);
   Point oldCenter = Point(oldBox.x+oldBox.width/2, oldBox.y+oldBox.height/2);
   int oldVelocity = 0;
   int newVelocity = 0;
   if(oldBox.contains(newCenter)){
-    position.push(newCenter.y);
+    position.push_back(newCenter.y);
     if(position.size() > 1){
       oldVelocity = velocity.front();
-      velocity.push(calculateDifference(newCenter.y, oldCenter.y));
+      velocity.push_back(calculateDifference(newCenter.y, oldCenter.y));
       newVelocity = velocity.front();
     }
     if(velocity.size() > 1){
-      acceleration.push(calculateDifference(newVelocity, oldVelocity));
+      acceleration.push_back(calculateDifference(newVelocity, oldVelocity));
     }
 
     if(position.size() >= weights.size()){
-      position.pop();
+      position.pop_front();
     }
     if(velocity.size() >= weights.size()){
-      velocity.pop();
+      velocity.pop_front();
     }
     if(acceleration.size() >= weights.size()){
-      acceleration.pop();
+      acceleration.pop_front();
     }
 
     if(position.size() > 0 && toSmooth == 1){
-      smooth.push(calculateWindow(position, weights));
+      smooth.push_back(calculateWindow(position, weights));
     }
     else if(velocity.size() > 0 && toSmooth == 2){
-      smooth.push(calculateWindow(velocity, weights));
+      smooth.push_back(calculateWindow(velocity, weights));
     }
     else if(acceleration.size() > 0 && toSmooth == 3){
-      smooth.push(calculateWindow(acceleration, weights));
+      smooth.push_back(calculateWindow(acceleration, weights));
     }
     if(smooth.size() > weights.size()){
-      smooth.pop();
+      smooth.pop_front();
     }
   }
 }
-
-
 
 vector<float> kernel(vector<int> weights, int bandwidth){
   vector<float> slopes;
@@ -173,6 +171,22 @@ vector<float> kernel(vector<int> weights, int bandwidth){
   return calculatedWeights;
 }
 
+bool checkDirectionChange(deque<float> &buffer){
+  if(buffer.size() > 1){
+    return (buffer.at(0) > 0 && buffer.at(1) < 0);
+  }
+}
+
+bool checkDribbling(bool &flag, int verticalPostion, Rect personRectangle){
+  double heightThreshold = (double)(personRectangle.height)/5.0;
+  double verticalThreshold = (double)personRectangle.y
+  + (double)personRectangle.height
+  - heightThreshold;
+  if((double)verticalPostion < verticalThreshold){
+    flag = true;
+  }
+}
+
 int main (int argc, const char * argv[])
 {
     VideoCapture stream("/home/vanya/Videos/Sick3/test_improved_downsample.avi"); // open the default camera (0) or file path
@@ -201,10 +215,10 @@ int main (int argc, const char * argv[])
     tuple<Point,Vec3f,int> ball;
 
     // Verticle Position and Verticle Velocity
-    queue<int> acceleration = queue<int>();
-    queue<int> position = queue<int>();
-    queue<int> velocity = queue<int>();
-    queue<float> smooth = queue<float>();
+    deque<int> acceleration = deque<int>();
+    deque<int> position = deque<int>();
+    deque<int> velocity = deque<int>();
+    deque<float> smooth = deque<float>();
 
     Rect2d ballRectangle;
     Rect2d ballRectangleOld;
@@ -222,6 +236,7 @@ int main (int argc, const char * argv[])
 
     // flags
     bool tracking = false;
+    bool dribbling = false;
 
     for(;;){
       // Grab Frame
@@ -260,8 +275,7 @@ int main (int argc, const char * argv[])
         }
       }
 
-      if(tracking)
-      {
+      if(tracking){
         // Make Copy of Previous Track Box
         ballRectangleOld = Rect(ballRectangle.x, ballRectangle.y,
           ballRectangle.width, ballRectangle.height);
@@ -272,20 +286,28 @@ int main (int argc, const char * argv[])
         // Update Verticle Ball Movmement Data
         populateWindow(
           ballRectangle, ballRectangleOld,
-          smooth, acceleration, velocity, position, normalizedWeights, 1);
+          smooth, acceleration, velocity, position, normalizedWeights, 2);
 
-        if(smooth.size()){
-          cout << smooth.front() << endl;
-        }
-
-        // if(){
-        //   capture.set(1,stream.get(CV_CAP_PROP_POS_FRAMES)-10);
-        //   capture >> still;
-        //   imshow("touch", still);
-        //   }
+        // Check if dribbling yet
+        checkDribbling(dribbling, position.front(), personRectangle);
 
         // Draw the tracked ball
         drawBall(frame, ballRectangle);
+      }
+
+      if(tracking && dribbling){
+        if(smooth.size()){
+          cout << smooth.front() << "---" <<
+          stream.get(CV_CAP_PROP_POS_FRAMES) << endl;
+        }
+
+        if(checkDirectionChange(smooth)){
+          cout <<"HIT: "<< smooth.front() << "---" <<
+          stream.get(CV_CAP_PROP_POS_FRAMES) << endl;
+          capture.set(1,stream.get(CV_CAP_PROP_POS_FRAMES));
+          capture >> still;
+          imshow("HIT", still);
+        }
       }
 
       imshow("frame", frame);

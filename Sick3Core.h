@@ -1,5 +1,5 @@
 #ifndef SICK3CORE_H
-#include <queue>
+#include <deque>
 #include <list>
 #include <stdio.h>
 #include <GRT/GRT.h>
@@ -64,8 +64,8 @@ average of the window (using an applied kernel). Using these "smooth" value we c
 The means monitoring when velocity goes from + to - or from - to +. You can choose to smooth position or velocity
 */
 void populateWindow(Rect2d newBox, Rect2d oldBox,
-  queue<float> &smooth,
-  queue<int> &acceleration, queue<int> &velocity, queue<int> &position,
+  deque<float> &smooth,
+  deque<int> &acceleration, deque<int> &velocity, deque<int> &position,
   vector<float> weights, int toSmooth);
 
 /* CALCULATE DIFFERENCE */
@@ -86,7 +86,7 @@ int calculateDifference(int cur, int prev);
 We can calculate for any window this can be position, velocity, acceleration, smooth,
 etc.
 */
-float calculateWindow(queue<int> window, vector<float> weights);
+float calculateWindow(deque<int> window, vector<float> weights);
 
 /* CALCULATE BALLBOUND */
 /*
@@ -115,4 +115,21 @@ Get the bound around the discovered ball.
 tuple<Point,Vec3f,int> findBall(Mat &grey,
   Rect personRectangle,
   vector<tuple<Point,Vec3f,int>> &potentialBalls);
+
+  /* CHECK DIRECTION CHANGE */
+  /*
+  /* buffer - A buffer for data.
+
+  Check if direction of the ball has changed.
+  */
+  bool checkDirectionChange(deque<float> &buffer);
+
+  /* CHECK THAT USER BEGAN DRIBBLING */
+  /*
+  /* flag - a boolean flag to check.
+  /* verticalPostion - the vertical psotion of the ball
+
+  Check if direction of the ball has changed.
+  */
+  bool checkDribbling(bool &flag, int verticalPostion, Rect personRectangle);
 #endif
