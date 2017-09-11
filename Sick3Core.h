@@ -122,7 +122,7 @@ tuple<Point,Vec3f,int> findBall(Mat &grey,
 
   Check if direction of the ball has changed.
   */
-  bool checkDirectionChange(deque<float> &buffer);
+  bool checkDirectionChange(deque<float> &buffer, int touch, int frame, int difference);
 
   /* CHECK THAT USER BEGAN DRIBBLING */
   /*

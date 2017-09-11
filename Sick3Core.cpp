@@ -171,9 +171,10 @@ vector<float> kernel(vector<int> weights, int bandwidth){
   return calculatedWeights;
 }
 
-bool checkDirectionChange(deque<float> &buffer){
+bool checkDirectionChange(deque<float> &buffer, int touch, int frame, int difference){
   if(buffer.size() > 1){
-    return (buffer.at(0) > 0 && buffer.at(1) < 0);
+    return (buffer.at(0) > 0 && buffer.at(1) < 0
+    && (frame - touch) > difference);
   }
 }
 
@@ -213,15 +214,14 @@ int main (int argc, const char * argv[])
 
     // Feet and Ball
     tuple<Point,Vec3f,int> ball;
+    Rect2d ballRectangle;
+    Rect2d ballRectangleOld;
 
     // Verticle Position and Verticle Velocity
     deque<int> acceleration = deque<int>();
     deque<int> position = deque<int>();
     deque<int> velocity = deque<int>();
     deque<float> smooth = deque<float>();
-
-    Rect2d ballRectangle;
-    Rect2d ballRectangleOld;
 
     // Background Subtraction Settings
     Ptr<BackgroundSubtractorMOG2> pMOG2;
@@ -234,9 +234,12 @@ int main (int argc, const char * argv[])
     // Frame data
     vector<tuple<Point,Vec3f,int>> potentialBalls;
 
-    // flags
+    // Flags
     bool tracking = false;
     bool dribbling = false;
+
+    // Meta-data
+    int lastTouch = 0;
 
     for(;;){
       // Grab Frame
@@ -301,7 +304,8 @@ int main (int argc, const char * argv[])
           stream.get(CV_CAP_PROP_POS_FRAMES) << endl;
         }
 
-        if(checkDirectionChange(smooth)){
+        if(checkDirectionChange(smooth, lastTouch, stream.get(CV_CAP_PROP_POS_FRAMES),10)){
+          lastTouch = stream.get(CV_CAP_PROP_POS_FRAMES);
           cout <<"HIT: "<< smooth.front() << "---" <<
           stream.get(CV_CAP_PROP_POS_FRAMES) << endl;
           capture.set(1,stream.get(CV_CAP_PROP_POS_FRAMES));
