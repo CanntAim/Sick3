@@ -1,4 +1,5 @@
 #ifndef SICK3CORE_H
+#include <typeinfo>
 #include <deque>
 #include <list>
 #include <stdio.h>
@@ -116,20 +117,20 @@ tuple<Point,Vec3f,int> findBall(Mat &grey,
   Rect personRectangle,
   vector<tuple<Point,Vec3f,int>> &potentialBalls);
 
-  /* CHECK DIRECTION CHANGE */
-  /*
-  /* buffer - A buffer for data.
+/* CHECK DIRECTION CHANGE */
+/*
+/* buffer - A buffer for data.
 
-  Check if direction of the ball has changed.
-  */
-  bool checkDirectionChange(deque<float> &buffer, int touch, int frame, int difference);
+Check if direction of the ball has changed.
+*/
+bool checkDirectionChange(deque<float> &buffer, int touch, int frame, int difference);
 
-  /* CHECK THAT USER BEGAN DRIBBLING */
-  /*
-  /* flag - a boolean flag to check.
-  /* verticalPostion - the vertical psotion of the ball
+/* CHECK THAT USER BEGAN DRIBBLING */
+/*
+/* flag - a boolean flag to check.
+/* verticalPostion - the vertical psotion of the ball
 
-  Check if direction of the ball has changed.
-  */
-  bool checkDribbling(bool &flag, int verticalPostion, Rect personRectangle);
+Check if direction of the ball has changed.
+*/
+bool checkDribbling(bool &flag, int verticalPostion, Rect personRectangle);
 #endif

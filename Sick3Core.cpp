@@ -197,11 +197,14 @@ int main (int argc, const char * argv[])
 
     // Frame Layers
     Mat frame;
-    Mat still;
     Mat mask;
     Mat foreground;
     Mat background;
     Mat grey;
+
+    // Exposure Layers
+    Mat still;
+    Mat blend;
 
     // Kernel Weights
     vector<int> weights;
@@ -240,6 +243,7 @@ int main (int argc, const char * argv[])
 
     // Meta-data
     int lastTouch = 0;
+    int countTouch = 0;
 
     for(;;){
       // Grab Frame
@@ -299,18 +303,17 @@ int main (int argc, const char * argv[])
       }
 
       if(tracking && dribbling){
-        if(smooth.size()){
-          cout << smooth.front() << "---" <<
-          stream.get(CV_CAP_PROP_POS_FRAMES) << endl;
-        }
-
-        if(checkDirectionChange(smooth, lastTouch, stream.get(CV_CAP_PROP_POS_FRAMES),10)){
+        if(checkDirectionChange(smooth, lastTouch, stream.get(CV_CAP_PROP_POS_FRAMES), 10)){
           lastTouch = stream.get(CV_CAP_PROP_POS_FRAMES);
-          cout <<"HIT: "<< smooth.front() << "---" <<
-          stream.get(CV_CAP_PROP_POS_FRAMES) << endl;
-          capture.set(1,stream.get(CV_CAP_PROP_POS_FRAMES));
+          capture.set(1,lastTouch);
           capture >> still;
-          imshow("HIT", still);
+          blend = still.clone();
+          countTouch++;
+        } else if(countTouch > 0) {
+          capture >> still;
+          addWeighted(blend,0.9,still,0.1,0.0,blend);
+          addWeighted(blend,0.5,blend,0.5,0.0,blend);
+          imshow(to_string(countTouch), blend);
         }
       }
 
