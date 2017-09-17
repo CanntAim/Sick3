@@ -9,6 +9,6 @@ find_package( grt REQUIRED )
 include_directories(${GRT_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${GRT_LIBRARIES})
 
-add_executable(Sick3Core Sick3Core.cpp)
+add_executable(Sick3Core Track.cpp)
 target_link_libraries(Sick3Core ${OpenCV_LIBS} ${LIBS})
 

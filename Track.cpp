@@ -1,4 +1,4 @@
-#include "Sick3Core.h"
+#include "Track.h"
 
 void clean(Mat &mask){
   erode(mask,mask,Mat(),Point(-1, -1),2,1,1);
@@ -304,6 +304,7 @@ int main (int argc, const char * argv[])
 
       if(tracking && dribbling){
         if(checkDirectionChange(smooth, lastTouch, stream.get(CV_CAP_PROP_POS_FRAMES), 10)){
+          imwrite( "/home/vanya/Pictures/Sick3/"+to_string(countTouch)+".jpg", blend);
           lastTouch = stream.get(CV_CAP_PROP_POS_FRAMES);
           capture.set(1,lastTouch);
           capture >> still;
@@ -311,8 +312,7 @@ int main (int argc, const char * argv[])
           countTouch++;
         } else if(countTouch > 0) {
           capture >> still;
-          addWeighted(blend,0.9,still,0.1,0.0,blend);
-          addWeighted(blend,0.5,blend,0.5,0.0,blend);
+          blend += still - blend;
           imshow(to_string(countTouch), blend);
         }
       }
