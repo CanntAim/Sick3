@@ -13,6 +13,101 @@ void backgroundSubtraction(Ptr<BackgroundSubtractorMOG2> &pMOG2){
   pMOG2->setDetectShadows(false);
 }
 
+int mode(vector<Mat> &hist, int channel){
+	int bins = 255;
+	double max = 0;
+  double mode = 0;
+
+	for(int i = 0; i < bins-1; i++){
+    if(hist[channel].at<int>(i) > max){
+      max=hist[channel].at<int>(i);
+      mode = i;
+    }
+	}
+
+	return floor(mode);
+}
+
+void filter(Mat &img, int color[3][3], int range){
+  cout << to_string(color[0][0]) << endl;
+  cout << to_string(color[0][1]) << endl;
+  cout << to_string(color[0][2]) << endl;
+  for(int i=0; i<img.rows; i++){
+    for(int j=0; j<img.cols; j++){
+      if((img.at<Vec3b>(i,j)[0] > (color[0][0] + range) || img.at<Vec3b>(i,j)[0] < (color[0][0] - range))
+      && (img.at<Vec3b>(i,j)[1] > (color[0][1] + range) || img.at<Vec3b>(i,j)[1] < (color[0][1] - range))
+      && (img.at<Vec3b>(i,j)[2] > (color[0][2] + range) || img.at<Vec3b>(i,j)[2] < (color[0][2] - range))
+      && (img.at<Vec3b>(i,j)[0] > (color[1][0] + range) || img.at<Vec3b>(i,j)[0] < (color[1][0] - range))
+      && (img.at<Vec3b>(i,j)[1] > (color[1][1] + range) || img.at<Vec3b>(i,j)[1] < (color[1][1] - range))
+      && (img.at<Vec3b>(i,j)[2] > (color[1][2] + range) || img.at<Vec3b>(i,j)[2] < (color[1][2] - range))
+      && (img.at<Vec3b>(i,j)[0] > (color[2][0] + range) || img.at<Vec3b>(i,j)[0] < (color[2][0] - range))
+      && (img.at<Vec3b>(i,j)[1] > (color[2][1] + range) || img.at<Vec3b>(i,j)[1] < (color[2][1] - range))
+      && (img.at<Vec3b>(i,j)[2] > (color[2][2] + range) || img.at<Vec3b>(i,j)[2] < (color[2][2] - range))){
+        img.at<Vec3b>(i,j)[0] = 0;
+        img.at<Vec3b>(i,j)[1] = 0;
+        img.at<Vec3b>(i,j)[2] = 0;
+      }
+    }
+  }
+}
+
+vector<Mat> histogram(Mat &img){
+	int bins = 256;             // number of bins
+	int nc = img.channels();    // number of channels
+
+	vector<Mat> hist(nc);       // histogram arrays
+
+	// Initalize histogram arrays
+	for (int i = 0; i < hist.size(); i++)
+		hist[i] = Mat::zeros(1, bins, CV_32SC1);
+
+	// Calculate the histogram of the image
+	for (int i = 0; i < img.rows; i++){
+		for (int j = 0; j < img.cols; j++){
+			for (int k = 0; k < nc; k++){
+				uchar val = nc == 1 ? img.at<uchar>(i,j) : img.at<Vec3b>(i,j)[k];
+				if(val != 0){
+					hist[k].at<int>(val) += 1;
+        }
+			}
+		}
+	}
+
+	// For each histogram arrays, obtain the maximum (peak) value
+	// Needed to normalize the display later
+	int hmax[3] = {0,0,0};
+	for (int i = 0; i < nc; i++){
+		for (int j = 0; j < bins-1; j++)
+			hmax[i] = hist[i].at<int>(j) > hmax[i] ? hist[i].at<int>(j) : hmax[i];
+	}
+
+	const char* wname[3] = { "blue", "green", "red" };
+	Scalar colors[3] = { Scalar(255,0,0), Scalar(0,255,0), Scalar(0,0,255) };
+
+	vector<Mat> canvas(nc);
+
+  // Display each histogram in a canvas
+	for (int i = 0; i < nc; i++)
+	{
+		canvas[i] = Mat::ones(125, bins, CV_8UC3);
+
+		for (int j = 0, rows = canvas[i].rows; j < bins-1; j++)
+		{
+			line(
+				canvas[i],
+				Point(j, rows),
+				Point(j, rows - (hist[i].at<int>(j) * rows/hmax[i])),
+				nc == 1 ? Scalar(200,200,200) : colors[i],
+				1, 8, 0
+			);
+		}
+
+		imshow(nc == 1 ? "value" : wname[i], canvas[i]);
+	}
+
+	return hist;
+}
+
 Rect findPerson(Mat &mask){
   vector<vector<Point>> contours;
   vector<Vec4i> hierarchy;
@@ -32,6 +127,16 @@ Rect findPerson(Mat &mask){
   }
   return personRectangle;
 }
+
+tuple<Rect2d,Rect2d> findFeet(tuple<Point,Vec3f,int> &ball){
+  float radius = get<1>(ball)[2];
+  Point rightFoot(cvRound(get<1>(ball)[0] + radius), cvRound(get<1>(ball)[1] - 0.5*radius));
+  Point leftFoot(cvRound(get<1>(ball)[0] - 2*radius), cvRound(get<1>(ball)[1] - 0.5*radius));
+  Rect2d rightFootRectangle(rightFoot.x, rightFoot.y, radius, radius*2);
+  Rect2d leftFootRectangle(leftFoot.x, leftFoot.y, radius, radius*2);
+  return make_tuple(leftFootRectangle,rightFootRectangle);
+}
+
 
 tuple<Point,Vec3f,int> findBall(Mat &grey, Rect personRectangle, vector<tuple<Point,Vec3f,int>> &potentialBalls){
   vector<Vec3f> circles;
@@ -80,6 +185,13 @@ void drawBall(Mat &frame, Rect2d ballRectangle){
 
 void drawPerson(Mat &frame, Rect personRectangle){
   rectangle(frame, personRectangle.tl(), personRectangle.br(), Scalar(255,0,0), 2, 8, 0);
+}
+
+void drawFeet(Mat &frame, Rect2d &leftFoot, Rect2d &rightFoot){
+  // Left Foot Rectangle
+  rectangle(frame, leftFoot, Scalar(0,255,0), 2, 8, 0);
+  // Right Foot Rectangle
+  rectangle(frame, rightFoot, Scalar(0,255,0), 2, 8, 0);
 }
 
 int calculateDifference(int cur, int prev){
@@ -216,6 +328,7 @@ int main (int argc, const char * argv[])
     vector<float> normalizedWeights = kernel(weights, 20);
 
     // Feet and Ball
+    tuple<Rect2d,Rect2d> feet;
     tuple<Point,Vec3f,int> ball;
     Rect2d ballRectangle;
     Rect2d ballRectangleOld;
@@ -244,6 +357,7 @@ int main (int argc, const char * argv[])
     // Meta-data
     int lastTouch = 0;
     int countTouch = 0;
+    int modes[3][3] = {{0,0,0},{0,0,0},{0,0,0}};
 
     for(;;){
       // Grab Frame
@@ -269,8 +383,14 @@ int main (int argc, const char * argv[])
         ballRectangle = ballBound(get<1>(ball));
 
         if(get<2>(ball)){
+          // Find Feet
+          feet = findFeet(ball);
+
           // Draw the Found Ball
           drawBall(frame, ballRectangle);
+
+          // Draw the found feet
+          drawFeet(frame, get<0>(feet), get<1>(feet));
 
           // Track Ball
           ballTracker->init(frame, ballRectangle);
@@ -278,6 +398,26 @@ int main (int argc, const char * argv[])
           // Set Tracking Flag
           tracking = true;
 
+          // Calculate Primary Color of Ball and Feet
+          Mat ballImage = frame(ballRectangle).clone();
+          Mat leftFootImage = frame(get<0>(feet)).clone();
+          Mat rightFootImage = frame(get<1>(feet)).clone();
+          clean(ballImage);
+          clean(leftFootImage);
+          clean(rightFootImage);
+          vector<Mat> hist = histogram(ballImage);
+          modes[0][0] = mode(hist, 0);
+          modes[0][1] = mode(hist, 1);
+          modes[0][2] = mode(hist, 2);
+          hist = histogram(leftFootImage);
+          modes[1][0] = mode(hist, 0);
+          modes[1][1] = mode(hist, 1);
+          modes[1][2] = mode(hist, 2);
+          hist = histogram(rightFootImage);
+          modes[2][0] = mode(hist, 0);
+          modes[2][1] = mode(hist, 1);
+          modes[2][2] = mode(hist, 2);
+          //mshow("histogram",hist);
           imshow("Found", frame);
         }
       }
@@ -304,7 +444,10 @@ int main (int argc, const char * argv[])
 
       if(tracking && dribbling){
         if(checkDirectionChange(smooth, lastTouch, stream.get(CV_CAP_PROP_POS_FRAMES), 10)){
-          imwrite( "/home/vanya/Pictures/Sick3/"+to_string(countTouch)+".jpg", blend);
+          if(countTouch > 0){
+            filter(blend,modes,5);
+            imwrite( "/home/vanya/Pictures/Sick3/"+to_string(countTouch)+".jpg", blend);
+          }
           lastTouch = stream.get(CV_CAP_PROP_POS_FRAMES);
           capture.set(1,lastTouch);
           capture >> still;

@@ -3,6 +3,7 @@
   #include <deque>
   #include <list>
   #include <stdio.h>
+  #include <math.h>
   #include <GRT/GRT.h>
   #include <opencv2/opencv.hpp>
   #include <opencv2/tracking.hpp>
@@ -20,6 +21,16 @@
   Initializes MOG2 and sets parameters for it.
   */
   void backgroundSubtraction(Ptr<BackgroundSubtractorMOG2> &pMOG2);
+
+  /* DRAW FEET */
+  /*
+  /* frame - which frame to draw on
+  /* leftFoot - rectangle of left foot to draw
+  /* leftFoot - rectangle of right foot to draw
+
+  Draws a bounding box around the ball.
+  */
+  void drawFeet(Mat &frame, Rect2d &leftFoot, Rect2d &rightFoot);
 
   /* DRAW BALL */
   /*
@@ -97,6 +108,14 @@
   */
   Rect2d ballBound(Vec3f &ball);
 
+  /* CALCULATE FINDFEET */
+  /*
+  /* ball - The ball between the left and right foot.
+
+  Get the bound around the person in the MOG2 mask.
+  */
+  tuple<Rect2d,Rect2d> findFeet(tuple<Point,Vec3f,int> &ball);
+
   /* CALCULATE FINDPERSON */
   /*
   /* mask - The mask created by the MOG2 algorithm.
@@ -133,4 +152,21 @@
   Check if direction of the ball has changed.
   */
   bool checkDribbling(bool &flag, int verticalPostion, Rect personRectangle);
+
+  /* CREATE A HISTOGRAM */
+  /*
+  /* img - an image for which to calculate the histogram.
+
+  Calculate the histogram for the chosen image.
+  */
+  vector<Mat> histogram(Mat &img);
+
+  /* CALCULATE MODE FROM A HISTOGRAM */
+  /*
+  /* hist - A histogram for which to calculate the mode.
+  /* int - which channel to calculate mode for.
+
+  Calculate the average for the chosen histogram.
+  */
+  int mode(vector<Mat> &hist, int channel);
 #endif
