@@ -28,30 +28,31 @@ int mode(vector<Mat> &hist, int channel){
 	return floor(mode);
 }
 
-void filter(Mat &img, int color[3][3], int range){
-  cout << to_string(color[0][0]) << endl;
-  cout << to_string(color[0][1]) << endl;
-  cout << to_string(color[0][2]) << endl;
+void filter(Mat &img, int color[3], int range, bool exclude){
   for(int i=0; i<img.rows; i++){
     for(int j=0; j<img.cols; j++){
-      if((img.at<Vec3b>(i,j)[0] > (color[0][0] + range) || img.at<Vec3b>(i,j)[0] < (color[0][0] - range))
-      && (img.at<Vec3b>(i,j)[1] > (color[0][1] + range) || img.at<Vec3b>(i,j)[1] < (color[0][1] - range))
-      && (img.at<Vec3b>(i,j)[2] > (color[0][2] + range) || img.at<Vec3b>(i,j)[2] < (color[0][2] - range))
-      && (img.at<Vec3b>(i,j)[0] > (color[1][0] + range) || img.at<Vec3b>(i,j)[0] < (color[1][0] - range))
-      && (img.at<Vec3b>(i,j)[1] > (color[1][1] + range) || img.at<Vec3b>(i,j)[1] < (color[1][1] - range))
-      && (img.at<Vec3b>(i,j)[2] > (color[1][2] + range) || img.at<Vec3b>(i,j)[2] < (color[1][2] - range))
-      && (img.at<Vec3b>(i,j)[0] > (color[2][0] + range) || img.at<Vec3b>(i,j)[0] < (color[2][0] - range))
-      && (img.at<Vec3b>(i,j)[1] > (color[2][1] + range) || img.at<Vec3b>(i,j)[1] < (color[2][1] - range))
-      && (img.at<Vec3b>(i,j)[2] > (color[2][2] + range) || img.at<Vec3b>(i,j)[2] < (color[2][2] - range))){
-        img.at<Vec3b>(i,j)[0] = 0;
-        img.at<Vec3b>(i,j)[1] = 0;
-        img.at<Vec3b>(i,j)[2] = 0;
+      if(exclude){
+        if((img.at<Vec3b>(i,j)[0] > (color[0] + range) || img.at<Vec3b>(i,j)[0] < (color[0] - range))
+        && (img.at<Vec3b>(i,j)[1] > (color[1] + range) || img.at<Vec3b>(i,j)[1] < (color[1] - range))
+        && (img.at<Vec3b>(i,j)[2] > (color[2] + range) || img.at<Vec3b>(i,j)[2] < (color[2] - range))){
+          img.at<Vec3b>(i,j)[0] = 0;
+          img.at<Vec3b>(i,j)[1] = 0;
+          img.at<Vec3b>(i,j)[2] = 0;
+        }
+      } else {
+        if((img.at<Vec3b>(i,j)[0] < (color[0] + range) && img.at<Vec3b>(i,j)[0] > (color[0] - range))
+        && (img.at<Vec3b>(i,j)[1] < (color[1] + range) && img.at<Vec3b>(i,j)[1] > (color[1] - range))
+        && (img.at<Vec3b>(i,j)[2] < (color[2] + range) && img.at<Vec3b>(i,j)[2] > (color[2] - range))){
+          img.at<Vec3b>(i,j)[0] = 0;
+          img.at<Vec3b>(i,j)[1] = 0;
+          img.at<Vec3b>(i,j)[2] = 0;
+        }
       }
     }
   }
 }
 
-vector<Mat> histogram(Mat &img){
+vector<Mat> histogram(Mat &img, string name){
 	int bins = 256;             // number of bins
 	int nc = img.channels();    // number of channels
 
@@ -73,37 +74,38 @@ vector<Mat> histogram(Mat &img){
 		}
 	}
 
-	// For each histogram arrays, obtain the maximum (peak) value
-	// Needed to normalize the display later
-	int hmax[3] = {0,0,0};
-	for (int i = 0; i < nc; i++){
-		for (int j = 0; j < bins-1; j++)
-			hmax[i] = hist[i].at<int>(j) > hmax[i] ? hist[i].at<int>(j) : hmax[i];
-	}
+  if(!name.empty()){
+    // For each histogram arrays, obtain the maximum (peak) value
+  	// Needed to normalize the display later
+  	int hmax[3] = {0,0,0};
+  	for (int i = 0; i < nc; i++){
+  		for (int j = 0; j < bins-1; j++)
+  			hmax[i] = hist[i].at<int>(j) > hmax[i] ? hist[i].at<int>(j) : hmax[i];
+  	}
 
-	const char* wname[3] = { "blue", "green", "red" };
-	Scalar colors[3] = { Scalar(255,0,0), Scalar(0,255,0), Scalar(0,0,255) };
+  	string wname[3] = { name+" blue", name+" green", name+" red" };
+  	Scalar colors[3] = { Scalar(255,0,0), Scalar(0,255,0), Scalar(0,0,255) };
 
-	vector<Mat> canvas(nc);
+  	vector<Mat> canvas(nc);
 
-  // Display each histogram in a canvas
-	for (int i = 0; i < nc; i++)
-	{
-		canvas[i] = Mat::ones(125, bins, CV_8UC3);
+    // Display each histogram in a canvas
+  	for (int i = 0; i < nc; i++)
+  	{
+  		canvas[i] = Mat::ones(125, bins, CV_8UC3);
 
-		for (int j = 0, rows = canvas[i].rows; j < bins-1; j++)
-		{
-			line(
-				canvas[i],
-				Point(j, rows),
-				Point(j, rows - (hist[i].at<int>(j) * rows/hmax[i])),
-				nc == 1 ? Scalar(200,200,200) : colors[i],
-				1, 8, 0
-			);
-		}
-
-		imshow(nc == 1 ? "value" : wname[i], canvas[i]);
-	}
+  		for (int j = 0, rows = canvas[i].rows; j < bins-1; j++)
+  		{
+  			line(
+  				canvas[i],
+  				Point(j, rows),
+  				Point(j, rows - (hist[i].at<int>(j) * rows/hmax[i])),
+  				nc == 1 ? Scalar(200,200,200) : colors[i],
+  				1, 8, 0
+  			);
+  		}
+  		imshow(nc == 1 ? "value" : wname[i], canvas[i]);
+  	}
+  }
 
 	return hist;
 }
@@ -117,10 +119,10 @@ Rect findPerson(Mat &mask){
   vector<Rect> bounds(contours.size());
   vector<vector<Point>> contoursPoly(contours.size());
   for(int i = 0; i < contours.size(); i++){
-    approxPolyDP(cv::Mat(contours[i]), contoursPoly[i], 3, true);
+    approxPolyDP(contours[i], contoursPoly[i], 3, true);
     for(int i = 0; i < contoursPoly.size(); i++){
-      if(boundingRect(Mat(contoursPoly[i])).area() > personRectangleArea){
-        personRectangle = boundingRect(Mat(contoursPoly[i]));
+      if(boundingRect(contoursPoly[i]).area() > personRectangleArea){
+        personRectangle = boundingRect(contoursPoly[i]);
         personRectangleArea = personRectangle.area();
       }
     }
@@ -177,6 +179,13 @@ Rect2d ballBound(Vec3f &ball){
   Point topLeft = Point(cvRound(ball[0])-radius, cvRound(ball[1])-radius);
   Rect2d ballRectangle(topLeft.x, topLeft.y, radius*2, radius*2);
   return ballRectangle;
+}
+
+void drawBallTrace(Mat &frame, int frameCount, Rect2d ballRectangle){
+  Point ballCenter = Point(
+    ballRectangle.x+ballRectangle.width/2,
+    ballRectangle.y+ballRectangle.height/2);
+  circle(frame, ballCenter, 10, Scalar(0,0,255), -1, 8);
 }
 
 void drawBall(Mat &frame, Rect2d ballRectangle){
@@ -345,7 +354,7 @@ int main (int argc, const char * argv[])
 
     // Set up Trackers
     // Options are MIL, BOOSTING, KCF, TLD, MEDIANFLOW or GOTURN
-    Ptr<Tracker> ballTracker = Tracker::create("TLD");
+    Ptr<Tracker> ballTracker = TrackerTLD::create();
 
     // Frame data
     vector<tuple<Point,Vec3f,int>> potentialBalls;
@@ -357,7 +366,8 @@ int main (int argc, const char * argv[])
     // Meta-data
     int lastTouch = 0;
     int countTouch = 0;
-    int modes[3][3] = {{0,0,0},{0,0,0},{0,0,0}};
+    int frameCycleTouch = 0;
+    int modes[3] = {0,0,255};
 
     for(;;){
       // Grab Frame
@@ -405,18 +415,10 @@ int main (int argc, const char * argv[])
           clean(ballImage);
           clean(leftFootImage);
           clean(rightFootImage);
-          vector<Mat> hist = histogram(ballImage);
-          modes[0][0] = mode(hist, 0);
-          modes[0][1] = mode(hist, 1);
-          modes[0][2] = mode(hist, 2);
-          hist = histogram(leftFootImage);
-          modes[1][0] = mode(hist, 0);
-          modes[1][1] = mode(hist, 1);
-          modes[1][2] = mode(hist, 2);
-          hist = histogram(rightFootImage);
-          modes[2][0] = mode(hist, 0);
-          modes[2][1] = mode(hist, 1);
-          modes[2][2] = mode(hist, 2);
+          vector<Mat> hist = histogram(ballImage, "ball");
+          modes[0] = mode(hist, 0);
+          modes[1] = mode(hist, 1);
+          modes[2] = mode(hist, 2);
           //mshow("histogram",hist);
           imshow("Found", frame);
         }
@@ -445,18 +447,21 @@ int main (int argc, const char * argv[])
       if(tracking && dribbling){
         if(checkDirectionChange(smooth, lastTouch, stream.get(CV_CAP_PROP_POS_FRAMES), 10)){
           if(countTouch > 0){
-            filter(blend,modes,5);
+            filter(blend,modes,5, false);
             imwrite( "/home/vanya/Pictures/Sick3/"+to_string(countTouch)+".jpg", blend);
           }
           lastTouch = stream.get(CV_CAP_PROP_POS_FRAMES);
           capture.set(1,lastTouch);
           capture >> still;
           blend = still.clone();
+          frameCycleTouch = 0;
           countTouch++;
         } else if(countTouch > 0) {
           capture >> still;
+          drawBallTrace(still, frameCycleTouch, ballRectangle);
           blend += still - blend;
           imshow(to_string(countTouch), blend);
+          frameCycleTouch++;
         }
       }
 
