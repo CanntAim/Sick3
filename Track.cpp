@@ -14,18 +14,18 @@ void backgroundSubtraction(Ptr<BackgroundSubtractorMOG2> &pMOG2){
 }
 
 int mode(vector<Mat> &hist, int channel){
-	int bins = 255;
-	double max = 0;
+  int bins = 255;
+  double max = 0;
   double mode = 0;
 
-	for(int i = 0; i < bins-1; i++){
+  for(int i = 0; i < bins-1; i++){
     if(hist[channel].at<int>(i) > max){
       max=hist[channel].at<int>(i);
       mode = i;
     }
-	}
+  }
 
-	return floor(mode);
+  return floor(mode);
 }
 
 void filter(Mat &img, int color[3][3], int range){
@@ -52,75 +52,68 @@ void filter(Mat &img, int color[3][3], int range){
 }
 
 vector<Mat> histogram(Mat &img){
-	int bins = 256;             // number of bins
-	int nc = img.channels();    // number of channels
+  int bins = 256;             // number of bins
+  int nc = img.channels();    // number of channels
 
-	vector<Mat> hist(nc);       // histogram arrays
+  vector<Mat> hist(nc);       // histogram arrays
 
-	// Initalize histogram arrays
-	for (int i = 0; i < hist.size(); i++)
-		hist[i] = Mat::zeros(1, bins, CV_32SC1);
+  // Initalize histogram arrays
+  for (int i = 0; i < hist.size(); i++)
+    hist[i] = Mat::zeros(1, bins, CV_32SC1);
 
-	// Calculate the histogram of the image
-	for (int i = 0; i < img.rows; i++){
-		for (int j = 0; j < img.cols; j++){
-			for (int k = 0; k < nc; k++){
-				uchar val = nc == 1 ? img.at<uchar>(i,j) : img.at<Vec3b>(i,j)[k];
-				if(val != 0){
-					hist[k].at<int>(val) += 1;
+  // Calculate the histogram of the image
+  for (int i = 0; i < img.rows; i++){
+    for (int j = 0; j < img.cols; j++){
+      for (int k = 0; k < nc; k++){
+	uchar val = nc == 1 ? img.at<uchar>(i,j) : img.at<Vec3b>(i,j)[k];
+	if(val != 0){
+	  hist[k].at<int>(val) += 1;
         }
-			}
-		}
-	}
+      }
+    }
+  }
 
-	// For each histogram arrays, obtain the maximum (peak) value
-	// Needed to normalize the display later
-	int hmax[3] = {0,0,0};
-	for (int i = 0; i < nc; i++){
-		for (int j = 0; j < bins-1; j++)
-			hmax[i] = hist[i].at<int>(j) > hmax[i] ? hist[i].at<int>(j) : hmax[i];
-	}
+  // For each histogram arrays, obtain the maximum (peak) value
+  // Needed to normalize the display later
+  int hmax[3] = {0,0,0};
+  for (int i = 0; i < nc; i++){
+    for (int j = 0; j < bins-1; j++){
+      hmax[i] = hist[i].at<int>(j) > hmax[i] ? hist[i].at<int>(j) : hmax[i];
+    }
+  }
 
-	const char* wname[3] = { "blue", "green", "red" };
-	Scalar colors[3] = { Scalar(255,0,0), Scalar(0,255,0), Scalar(0,0,255) };
+  const char* wname[3] = { "blue", "green", "red" };
+  Scalar colors[3] = { Scalar(255,0,0), Scalar(0,255,0), Scalar(0,0,255) };
 
-	vector<Mat> canvas(nc);
+  vector<Mat> canvas(nc);
 
   // Display each histogram in a canvas
-	for (int i = 0; i < nc; i++)
-	{
-		canvas[i] = Mat::ones(125, bins, CV_8UC3);
-
-		for (int j = 0, rows = canvas[i].rows; j < bins-1; j++)
-		{
-			line(
-				canvas[i],
-				Point(j, rows),
-				Point(j, rows - (hist[i].at<int>(j) * rows/hmax[i])),
-				nc == 1 ? Scalar(200,200,200) : colors[i],
-				1, 8, 0
-			);
-		}
-
-		imshow(nc == 1 ? "value" : wname[i], canvas[i]);
-	}
-
-	return hist;
+  for (int i = 0; i < nc; i++){
+    canvas[i] = Mat::ones(125, bins, CV_8UC3);
+    for (int j = 0, rows = canvas[i].rows; j < bins-1; j++){
+      line(canvas[i],
+	   Point(j, rows),
+	   Point(j, rows - (hist[i].at<int>(j) * rows/hmax[i])),
+	   nc == 1 ? Scalar(200,200,200) : colors[i], 1, 8, 0);
+    }
+    imshow(nc == 1 ? "value" : wname[i], canvas[i]);
+  }
+  return hist;
 }
 
 Rect findPerson(Mat &mask){
   vector<vector<Point>> contours;
   vector<Vec4i> hierarchy;
   Rect personRectangle;
-  findContours(mask, contours, hierarchy, CV_RETR_EXTERNAL,  CV_CHAIN_APPROX_NONE, cv::Point(0, 0));
+  findContours(mask, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE, cv::Point(0, 0));
   int personRectangleArea = 0;
   vector<Rect> bounds(contours.size());
   vector<vector<Point>> contoursPoly(contours.size());
   for(int i = 0; i < contours.size(); i++){
     approxPolyDP(cv::Mat(contours[i]), contoursPoly[i], 3, true);
     for(int i = 0; i < contoursPoly.size(); i++){
-      if(boundingRect(Mat(contoursPoly[i])).area() > personRectangleArea){
-        personRectangle = boundingRect(Mat(contoursPoly[i]));
+      if(boundingRect(contoursPoly[i]).area() > personRectangleArea){
+        personRectangle = boundingRect(contoursPoly[i]);
         personRectangleArea = personRectangle.area();
       }
     }
@@ -345,7 +338,7 @@ int main (int argc, const char * argv[])
 
     // Set up Trackers
     // Options are MIL, BOOSTING, KCF, TLD, MEDIANFLOW or GOTURN
-    Ptr<Tracker> ballTracker = Tracker::create("TLD");
+    Ptr<Tracker> ballTracker = TrackerTLD::create();
 
     // Frame data
     vector<tuple<Point,Vec3f,int>> potentialBalls;
