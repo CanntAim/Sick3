@@ -41,6 +41,16 @@
   */
   void drawBall(Mat &frame, Rect2d ballRectangle);
 
+  /* DRAW BALL TRACE */
+  /*
+  /* frame - which frame to draw on
+  /* frameCount - the frame number from the start of the touch
+  /* ballRectangle - rectangle to draw
+
+  Draws a segment of the ball trace..
+  */
+  void drawBallTrace(Mat &frame, int frameCount, Rect2d ballRectangle);
+
   /* DRAW PERSON */
   /*
   /* frame - which frame to draw on
@@ -156,10 +166,11 @@
   /* CREATE A HISTOGRAM */
   /*
   /* img - an image for which to calculate the histogram.
+  /* name - the name of the histogram, if null will not display histogram.
 
   Calculate the histogram for the chosen image.
   */
-  vector<Mat> histogram(Mat &img);
+  vector<Mat> histogram(Mat &img, string name);
 
   /* CALCULATE MODE FROM A HISTOGRAM */
   /*
@@ -169,4 +180,14 @@
   Calculate the average for the chosen histogram.
   */
   int mode(vector<Mat> &hist, int channel);
+
+  /* FILTERS BY COLOR */
+  /*
+  /* img - Aan image which we want to filter.
+  /* color - intensity to filter for each channel.
+  /* range - the range in which we want to filter.
+
+  Calculate the average for the chosen histogram.
+  */
+  void filter(Mat &img, int color[3], int range, bool exclude);
 #endif
