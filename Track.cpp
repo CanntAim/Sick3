@@ -13,95 +13,6 @@ void backgroundSubtraction(Ptr<BackgroundSubtractorMOG2> &pMOG2){
   pMOG2->setDetectShadows(false);
 }
 
-int mode(vector<Mat> &hist, int channel){
-  int bins = 255;
-  double max = 0;
-  double mode = 0;
-
-  for(int i = 0; i < bins-1; i++){
-    if(hist[channel].at<int>(i) > max){
-      max=hist[channel].at<int>(i);
-      mode = i;
-    }
-  }
-
-  return floor(mode);
-}
-
-void filter(Mat &img, int color[3], int range, bool exclude){
-  for(int i=0; i<img.rows; i++){
-    for(int j=0; j<img.cols; j++){
-      if(exclude){
-        if((img.at<Vec3b>(i,j)[0] > (color[0] + range) || img.at<Vec3b>(i,j)[0] < (color[0] - range))
-        && (img.at<Vec3b>(i,j)[1] > (color[1] + range) || img.at<Vec3b>(i,j)[1] < (color[1] - range))
-        && (img.at<Vec3b>(i,j)[2] > (color[2] + range) || img.at<Vec3b>(i,j)[2] < (color[2] - range))){
-          img.at<Vec3b>(i,j)[0] = 0;
-          img.at<Vec3b>(i,j)[1] = 0;
-          img.at<Vec3b>(i,j)[2] = 0;
-        }
-      } else {
-        if((img.at<Vec3b>(i,j)[0] < (color[0] + range) && img.at<Vec3b>(i,j)[0] > (color[0] - range))
-        && (img.at<Vec3b>(i,j)[1] < (color[1] + range) && img.at<Vec3b>(i,j)[1] > (color[1] - range))
-        && (img.at<Vec3b>(i,j)[2] < (color[2] + range) && img.at<Vec3b>(i,j)[2] > (color[2] - range))){
-          img.at<Vec3b>(i,j)[0] = 0;
-          img.at<Vec3b>(i,j)[1] = 0;
-          img.at<Vec3b>(i,j)[2] = 0;
-        }
-      }
-    }
-  }
-}
-
-vector<Mat> histogram(Mat &img){
-  int bins = 256;             // number of bins
-  int nc = img.channels();    // number of channels
-
-  vector<Mat> hist(nc);       // histogram arrays
-
-  // Initalize histogram arrays
-  for (int i = 0; i < hist.size(); i++)
-    hist[i] = Mat::zeros(1, bins, CV_32SC1);
-
-  // Calculate the histogram of the image
-  for (int i = 0; i < img.rows; i++){
-    for (int j = 0; j < img.cols; j++){
-      for (int k = 0; k < nc; k++){
-        uchar val = nc == 1 ? img.at<uchar>(i,j) : img.at<Vec3b>(i,j)[k];
-        if(val != 0){
-          hist[k].at<int>(val) += 1;
-        }
-      }
-    }
-  }
-
-  // For each histogram arrays, obtain the maximum (peak) value
-  // Needed to normalize the display later
-  int hmax[3] = {0,0,0};
-  for (int i = 0; i < nc; i++){
-    for (int j = 0; j < bins-1; j++){
-      hmax[i] = hist[i].at<int>(j) > hmax[i] ? hist[i].at<int>(j) : hmax[i];
-    }
-  }
-
-  const char* wname[3] = { "blue", "green", "red" };
-  Scalar colors[3] = { Scalar(255,0,0), Scalar(0,255,0), Scalar(0,0,255) };
-
-  vector<Mat> canvas(nc);
-
-  // Display each histogram in a canvas
-  for (int i = 0; i < nc; i++){
-    canvas[i] = Mat::ones(125, bins, CV_8UC3);
-    for (int j = 0, rows = canvas[i].rows; j < bins-1; j++){
-      line(canvas[i],
-        Point(j, rows),
-        Point(j, rows - (hist[i].at<int>(j) * rows/hmax[i])),
-        nc == 1 ? Scalar(200,200,200) : colors[i], 1, 8, 0);
-    }
-    imshow(nc == 1 ? "value" : wname[i], canvas[i]);
-  }
-  return hist;
-}
-
 Rect findPerson(Mat &mask){
   vector<vector<Point>> contours;
   vector<Vec4i> hierarchy;
@@ -301,10 +212,34 @@ bool checkDribbling(bool &flag, int verticalPostion, Rect personRectangle){
   }
 }
 
+static void drawOptFlowMap(const Mat& flow, Mat& cflowmap, int step,
+			   double, const Scalar& color){
+  for(int y = 0; y < cflowmap.rows; y += step){
+    for(int x = 0; x < cflowmap.cols; x += step){
+      const Point2f& fxy = flow.at<Point2f>(y, x);
+      line(cflowmap, Point(x,y), Point(cvRound(x+fxy.x), cvRound(y+fxy.y)), color);
+      circle(cflowmap, Point(x,y), 2, color, -1);
+    }
+  }
+}
+
+
+void trace(VideoCapture &stream, Mat &still,
+	   Mat &grey, Mat &prevgrey,
+	   Mat &flow, Mat &uflow, Mat &cflow){
+  stream >> still;
+  cvtColor(still, grey, CV_BGR2GRAY);	  
+  if(!prevgrey.empty()) {
+    calcOpticalFlowFarneback(prevgrey, grey, uflow, 0.5, 3, 15, 3, 5, 1.2, 0);
+    cvtColor(prevgrey, cflow, CV_GRAY2BGR);
+    uflow.copyTo(flow);
+    drawOptFlowMap(flow, cflow, 16, 1.5, Scalar(0, 255, 0));
+  }
+}
+
 int main (int argc, const char * argv[])
 {
     VideoCapture stream("/home/vanya/Videos/Sick3/test_improved_downsample.avi"); // open the default camera (0) or file path
-    VideoCapture capture("/home/vanya/Videos/Sick3/test_improved_downsample.avi");
     if(!stream.isOpened())  // check if we succeeded
         return -1;
 
@@ -313,11 +248,11 @@ int main (int argc, const char * argv[])
     Mat mask;
     Mat foreground;
     Mat background;
-    Mat grey;
+    Mat grey, prevgrey;
+    Mat flow, cflow, uflow;
 
-    // Exposure Layers
+    // Result Layers
     Mat still;
-    Mat blend;
 
     // Kernel Weights
     vector<int> weights;
@@ -359,7 +294,6 @@ int main (int argc, const char * argv[])
     int lastTouch = 0;
     int countTouch = 0;
     int frameCycleTouch = 0;
-    int modes[3] = {0,0,255};
 
     for(;;){
       // Grab Frame
@@ -400,18 +334,7 @@ int main (int argc, const char * argv[])
           // Set Tracking Flag
           tracking = true;
 
-          // Calculate Primary Color of Ball and Feet
-          Mat ballImage = frame(ballRectangle).clone();
-          Mat leftFootImage = frame(get<0>(feet)).clone();
-          Mat rightFootImage = frame(get<1>(feet)).clone();
-          clean(ballImage);
-          clean(leftFootImage);
-          clean(rightFootImage);
-          vector<Mat> hist = histogram(ballImage, "ball");
-          modes[0] = mode(hist, 0);
-          modes[1] = mode(hist, 1);
-          modes[2] = mode(hist, 2);
-          //mshow("histogram",hist);
+	  // Display Found
           imshow("Found", frame);
         }
       }
@@ -439,26 +362,23 @@ int main (int argc, const char * argv[])
       if(tracking && dribbling){
         if(checkDirectionChange(smooth, lastTouch, stream.get(CV_CAP_PROP_POS_FRAMES), 10)){
           if(countTouch > 0){
-            filter(blend,modes,5, false);
-            imwrite( "/home/vanya/Pictures/Sick3/"+to_string(countTouch)+".jpg", blend);
+	    imwrite( "/home/vanya/Pictures/Sick3/"+to_string(countTouch)+".jpg", still);
           }
           lastTouch = stream.get(CV_CAP_PROP_POS_FRAMES);
-          capture.set(1,lastTouch);
-          capture >> still;
-          blend = still.clone();
+          trace(stream, still, grey, prevgrey, flow, uflow, cflow);
           frameCycleTouch = 0;
           countTouch++;
         } else if(countTouch > 0) {
-          capture >> still;
-          drawBallTrace(still, frameCycleTouch, ballRectangle);
-          blend += still - blend;
-          imshow(to_string(countTouch), blend);
+          trace(stream, still, grey, prevgrey, flow, uflow, cflow);
+          drawBallTrace(cflow, frameCycleTouch, ballRectangle);
+          imshow(to_string(countTouch), cflow);
           frameCycleTouch++;
         }
       }
 
       imshow("frame", frame);
       if(waitKey(1) >= 0) break;
+      std::swap(prevgrey, grey);
     }
 
     // The camera will be deinitialized automatically in VideoCapture destructor

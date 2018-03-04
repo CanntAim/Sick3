@@ -12,6 +12,12 @@
   using namespace std;
   using namespace cv;
 
+  /* CLEAN*/
+  /*
+  /* mask - the mask we wish clean
+
+  Cleans a background subtraction mask by getting rid of noise.
+  */
   void clean(Mat &mask);
 
   /* BACKGROUND SUBTRACTION*/
@@ -163,31 +169,4 @@
   */
   bool checkDribbling(bool &flag, int verticalPostion, Rect personRectangle);
 
-  /* CREATE A HISTOGRAM */
-  /*
-  /* img - an image for which to calculate the histogram.
-  /* name - the name of the histogram, if null will not display histogram.
-
-  Calculate the histogram for the chosen image.
-  */
-  vector<Mat> histogram(Mat &img, string name);
-
-  /* CALCULATE MODE FROM A HISTOGRAM */
-  /*
-  /* hist - A histogram for which to calculate the mode.
-  /* int - which channel to calculate mode for.
-
-  Calculate the average for the chosen histogram.
-  */
-  int mode(vector<Mat> &hist, int channel);
-
-  /* FILTERS BY COLOR */
-  /*
-  /* img - Aan image which we want to filter.
-  /* color - intensity to filter for each channel.
-  /* range - the range in which we want to filter.
-
-  Calculate the average for the chosen histogram.
-  */
-  void filter(Mat &img, int color[3], int range, bool exclude);
 #endif
