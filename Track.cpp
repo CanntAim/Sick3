@@ -254,6 +254,9 @@ int main (int argc, const char * argv[])
     // Result Layers
     Mat still;
 
+    // Exposure Layers
+    Mat blend;
+
     // Kernel Weights
     vector<int> weights;
     weights.push_back(0);
@@ -366,11 +369,13 @@ int main (int argc, const char * argv[])
           }
           lastTouch = stream.get(CV_CAP_PROP_POS_FRAMES);
           trace(stream, still, grey, prevgrey, flow, uflow, cflow);
+	  blend = cflow.clone();
           frameCycleTouch = 0;
           countTouch++;
         } else if(countTouch > 0) {
           trace(stream, still, grey, prevgrey, flow, uflow, cflow);
           drawBallTrace(cflow, frameCycleTouch, ballRectangle);
+	  blend+= cflow - blend;
           imshow(to_string(countTouch), cflow);
           frameCycleTouch++;
         }
