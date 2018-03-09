@@ -362,7 +362,7 @@ int main (int argc, const char * argv[])
       if(tracking && dribbling){
         if(checkDirectionChange(smooth, lastTouch, stream.get(CV_CAP_PROP_POS_FRAMES), 10)){
           if(countTouch > 0){
-	    imwrite( "/home/vanya/Pictures/Sick3/"+to_string(countTouch)+".jpg", still);
+	    imwrite( "/home/vanya/Pictures/Sick3/"+to_string(countTouch)+".jpg", cflow);
           }
           lastTouch = stream.get(CV_CAP_PROP_POS_FRAMES);
           trace(stream, still, grey, prevgrey, flow, uflow, cflow);
