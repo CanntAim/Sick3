@@ -14,7 +14,7 @@
 
   /* CLEAN*/
   /*
-  /* mask - the mask we wish clean
+  /* mask - the mask we wish clean.
 
   Cleans a background subtraction mask by getting rid of noise.
   */
@@ -22,7 +22,7 @@
 
   /* BACKGROUND SUBTRACTION*/
   /*
-  /* pMOG2 - pointer to MOG2 module
+  /* pMOG2 - pointer to MOG2 module.
 
   Initializes MOG2 and sets parameters for it.
   */
@@ -30,9 +30,9 @@
 
   /* DRAW FEET */
   /*
-  /* frame - which frame to draw on
-  /* leftFoot - rectangle of left foot to draw
-  /* leftFoot - rectangle of right foot to draw
+  /* frame - which frame to draw on.
+  /* leftFoot - rectangle of left foot to draw.
+  /* leftFoot - rectangle of right foot to draw.
 
   Draws a bounding box around the ball.
   */
@@ -40,8 +40,8 @@
 
   /* DRAW BALL */
   /*
-  /* frame - which frame to draw on
-  /* ballRectangle - rectangle to draw
+  /* frame - which frame to draw on.
+  /* ballRectangle - rectangle to draw.
 
   Draws a bounding box around the ball.
   */
@@ -49,18 +49,18 @@
 
   /* DRAW BALL TRACE */
   /*
-  /* frame - which frame to draw on
-  /* frameCount - the frame number from the start of the touch
-  /* ballRectangle - rectangle to draw
+  /* frame - which frame to draw on.
+  /* frameCount - the frame number from the start of the touch.
+  /* ballRectangle - rectangle to draw.
 
-  Draws a segment of the ball trace..
+  Draws a segment of the ball trace.
   */
   void drawBallTrace(Mat &frame, int frameCount, Rect2d ballRectangle);
 
   /* DRAW PERSON */
   /*
-  /* frame - which frame to draw on
-  /* personRectangle - rectangle to draw
+  /* frame - which frame to draw on.
+  /* personRectangle - rectangle to draw.
 
   Draws a bounding box around the person.
   */
@@ -68,14 +68,14 @@
 
   /* POPULATE WINDOW */
   /*
-  /* newBox - current frame's ball bounding rectangle
-  /* oldBox - previous frame's ball bounding rectangle
-  /* smooth - window for smoothed data
-  /* acceleration - window for ball acceleration data
-  /* velocity - window for ball velocity data
-  /* position - window for ball position data
-  /* maxBandwidth - the max size for windows that will be populated
-  /* toSmooth - code (1,2,3) to decide which window to use to create smooth
+  /* newBox - current frame's ball bounding rectangle.
+  /* oldBox - previous frame's ball bounding rectangle.
+  /* smooth - window for smoothed data.
+  /* acceleration - window for ball acceleration data.
+  /* velocity - window for ball velocity data.
+  /* position - window for ball position data.
+  /* maxBandwidth - the max size for windows that will be populated.
+  /* toSmooth - code (1,2,3) to decide which window to use to create smooth.
   /* window.
 
   We monitor the position of the ball as it's moving up and down. Sudden, drastic, changes in position
@@ -98,8 +98,8 @@
 
   /* CALCULATE DIFFERENCE */
   /*
-  /* cur - current value
-  /* prev - previous value
+  /* cur - current value.
+  /* prev - previous value.
 
   Use to calculate the difference between two values. Is generic because we might
   calculate difference between two positions to get velocity or the difference between
@@ -118,7 +118,7 @@
 
   /* CALCULATE BALLBOUND */
   /*
-  /* ball - The Vec3f represnting a ball.
+  /* ball - the Vec3f represnting a ball.
 
   Get the bound around the discovered ball.
   */
@@ -126,7 +126,7 @@
 
   /* CALCULATE FINDFEET */
   /*
-  /* ball - The ball between the left and right foot.
+  /* ball - the ball between the left and right foot.
 
   Get the bound around the person in the MOG2 mask.
   */
@@ -134,7 +134,7 @@
 
   /* CALCULATE FINDPERSON */
   /*
-  /* mask - The mask created by the MOG2 algorithm.
+  /* mask - the mask created by the MOG2 algorithm.
 
   Get the bound around the person in the MOG2 mask.
   */
@@ -142,8 +142,8 @@
 
   /* CALCULATE FINDBALL */
   /*
-  /* grey - The greyscale frame,
-  /* personRectangle - rectangle around found person
+  /* grey - the greyscale frame.
+  /* personRectangle - rectangle around found person.
   /* potentialBalls - container for the potential balls that we found.
 
   Get the bound around the discovered ball.
@@ -154,7 +154,7 @@
 
   /* CHECK DIRECTION CHANGE */
   /*
-  /* buffer - A buffer for data.
+  /* buffer - a buffer for data.
 
   Check if direction of the ball has changed.
   */
@@ -163,10 +163,48 @@
   /* CHECK THAT USER BEGAN DRIBBLING */
   /*
   /* flag - a boolean flag to check.
-  /* verticalPostion - the vertical psotion of the ball
+  /* verticalPostion - the vertical psotion of the ball.
 
   Check if direction of the ball has changed.
   */
   bool checkDribbling(bool &flag, int verticalPostion, Rect personRectangle);
+
+  /* DRAW TRACE */
+  /*
+  /* flow - the flow data collect from calcOpticalFlowFarneback.
+  /* cflowmap - the mat where we will draw.
+  /* step - defines spacing between points.
+  /* colorp - color of the points.
+  /* colorl - color of the lines.
+  */
+
+  void drawOptFlowMap(const Mat& flow, Mat& cflowmap, int step,
+		      double, const Scalar& colorp, const Scalar& colorl);
+
+  /* TRACES VIDEO MOVEMENT */
+  /* 
+  /* stream - video stream we are analyzing. 
+  /* still - current RGB frame.
+  /* grey - current greyscale frame.
+  /* prevgrev - previous greyscale frame.
+  /* flow - will contain copy of uflow.
+  /* uflow - will capture result of calcOpticalFlowFarneback.
+  /* cflow - will contain the drawn trace.
+
+  Produces a flow map of movement that occurs in video stream.
+  */
+
+  void trace(VideoCapture &stream, Mat &still,
+	     Mat &grey, Mat &prevgrey,
+	     Mat &flow, Mat &uflow, Mat &cflow, int frame);
+
+  /* GENERATE COLOR ALONG GRADIENT */
+  /*
+  /* frame - frame count in current cycle. 
+
+  Generates a color along gradient dynamically given frame counter.
+  */
+  Scalar generateColor(int frame);
+
 
 #endif

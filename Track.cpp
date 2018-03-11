@@ -212,29 +212,39 @@ bool checkDribbling(bool &flag, int verticalPostion, Rect personRectangle){
   }
 }
 
-static void drawOptFlowMap(const Mat& flow, Mat& cflowmap, int step,
-			   double, const Scalar& color){
+void drawOptFlowMap(const Mat& flow, Mat& cflowmap, int step,
+		   double, const Scalar& colorp, const Scalar& colorl){
   for(int y = 0; y < cflowmap.rows; y += step){
     for(int x = 0; x < cflowmap.cols; x += step){
       const Point2f& fxy = flow.at<Point2f>(y, x);
-      line(cflowmap, Point(x,y), Point(cvRound(x+fxy.x), cvRound(y+fxy.y)), color);
-      circle(cflowmap, Point(x,y), 2, color, -1);
+      line(cflowmap, Point(x,y), Point(cvRound(x+fxy.x), cvRound(y+fxy.y)), colorl);
+      circle(cflowmap, Point(x,y), 2, colorp, -1);
     }
   }
 }
 
-
 void trace(VideoCapture &stream, Mat &still,
 	   Mat &grey, Mat &prevgrey,
-	   Mat &flow, Mat &uflow, Mat &cflow){
+	   Mat &flow, Mat &uflow, Mat &cflow, int frame){
   stream >> still;
   cvtColor(still, grey, CV_BGR2GRAY);	  
   if(!prevgrey.empty()) {
     calcOpticalFlowFarneback(prevgrey, grey, uflow, 0.5, 3, 15, 3, 5, 1.2, 0);
-    //cvtColor(prevgrey, cflow, CV_GRAY2BGR); // Use this to draw on capture frame.
+    //cvtColor(prevgrey, cflow, CV_GRAY2BGR);        // Use this to draw on capture frame.
     cflow = Mat::zeros(prevgrey.size(), CV_64FC3);   // Use this to draw on blank frame.
     uflow.copyTo(flow);
-    drawOptFlowMap(flow, cflow, 16, 1.5, Scalar(0, 255, 0));
+    drawOptFlowMap(flow, cflow, 16, 1.5, Scalar(0, 255, 0), generateColor(frame));
+  }
+}
+
+Scalar generateColor(int frame){
+  cout << frame << endl;  
+  if(frame < 256){
+    return Scalar(0, frame, 255);
+  } else if(frame < 512)
+    return Scalar(frame-255, 255, 255);
+  else {
+    return Scalar(255,255,255);
   }
 }
 
@@ -366,18 +376,18 @@ int main (int argc, const char * argv[])
       if(tracking && dribbling){
         if(checkDirectionChange(smooth, lastTouch, stream.get(CV_CAP_PROP_POS_FRAMES), 10)){
           if(countTouch > 0){
-	    imwrite( "/home/vanya/Pictures/Sick3/"+to_string(countTouch)+".jpg", cflow);
+	    imwrite( "/home/vanya/Pictures/Sick3/"+to_string(countTouch)+".jpg", blend);
           }
           lastTouch = stream.get(CV_CAP_PROP_POS_FRAMES);
-          trace(stream, still, grey, prevgrey, flow, uflow, cflow);
+          trace(stream, still, grey, prevgrey, flow, uflow, cflow, 0);
 	  blend = cflow.clone();
           frameCycleTouch = 0;
           countTouch++;
         } else if(countTouch > 0) {
-          trace(stream, still, grey, prevgrey, flow, uflow, cflow);
+          trace(stream, still, grey, prevgrey, flow, uflow, cflow, frameCycleTouch);
           drawBallTrace(cflow, frameCycleTouch, ballRectangle);
-	  blend+= cflow - blend;
-          imshow(to_string(countTouch), cflow);
+	  blend += cflow;
+          imshow(to_string(countTouch), blend);
           frameCycleTouch++;
         }
       }
