@@ -238,12 +238,18 @@ void trace(VideoCapture &stream, Mat &still,
 }
 
 Scalar generateColor(int frame){
-  cout << frame << endl;  
+  Mat hsv(1, 1, CV_8UC3, Scalar(224, 224, 160));
+  Mat rgb;
+
+  Scalar rgb = Scalar((int)rgb.at<cv::Vec3b>(0, 0)[0],(int)rgb.at<cv::Vec3b>(0, 0)[0],(int)rgb.at<cv::Vec3b>(0, 0)[0])
   if(frame < 256){
-    return Scalar(0, frame, 255);
-  } else if(frame < 512)
-    return Scalar(frame-255, 255, 255);
-  else {
+    cout << "r" << endl;
+    return Scalar(0, frame*5, 255);
+  } else if(frame < 512){
+    cout << "b" << endl;
+    return Scalar((frame-255)*5, 255, 255);
+  } else {
+    cout << "g" << endl;
     return Scalar(255,255,255);
   }
 }
