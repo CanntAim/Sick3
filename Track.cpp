@@ -213,9 +213,10 @@ bool checkDribbling(bool &flag, int verticalPostion, Rect personRectangle){
 }
 
 void drawOptFlowMap(const Mat& flow, Mat& cflowmap, int step,
-		   double, const Scalar& colorp, const Scalar& colorl){
+		   double, Scalar colorp, Scalar colorl){
   for(int y = 0; y < cflowmap.rows; y += step){
     for(int x = 0; x < cflowmap.cols; x += step){
+      cout <<  colorl << endl;
       const Point2f& fxy = flow.at<Point2f>(y, x);
       line(cflowmap, Point(x,y), Point(cvRound(x+fxy.x), cvRound(y+fxy.y)), colorl);
       circle(cflowmap, Point(x,y), 2, colorp, -1);
@@ -230,28 +231,25 @@ void trace(VideoCapture &stream, Mat &still,
   cvtColor(still, grey, CV_BGR2GRAY);	  
   if(!prevgrey.empty()) {
     calcOpticalFlowFarneback(prevgrey, grey, uflow, 0.5, 3, 15, 3, 5, 1.2, 0);
-    //cvtColor(prevgrey, cflow, CV_GRAY2BGR);        // Use this to draw on capture frame.
-    cflow = Mat::zeros(prevgrey.size(), CV_64FC3);   // Use this to draw on blank frame.
+    cvtColor(prevgrey, cflow, CV_GRAY2BGR);        // Use this to draw on capture frame.
+    //cflow = Mat::zeros(prevgrey.size(), CV_64FC3);   // Use this to draw on blank frame.
     uflow.copyTo(flow);
     drawOptFlowMap(flow, cflow, 16, 1.5, Scalar(0, 255, 0), generateColor(frame));
   }
 }
 
 Scalar generateColor(int frame){
-  Mat hsv(1, 1, CV_8UC3, Scalar(224, 224, 160));
+  if(frame > 179){
+    frame = 179;
+  }
+  
+  Mat hsv(1, 1, CV_8UC3, Scalar(2*frame, 255, 255));
   Mat rgb;
 
-  Scalar rgb = Scalar((int)rgb.at<cv::Vec3b>(0, 0)[0],(int)rgb.at<cv::Vec3b>(0, 0)[0],(int)rgb.at<cv::Vec3b>(0, 0)[0])
-  if(frame < 256){
-    cout << "r" << endl;
-    return Scalar(0, frame*5, 255);
-  } else if(frame < 512){
-    cout << "b" << endl;
-    return Scalar((frame-255)*5, 255, 255);
-  } else {
-    cout << "g" << endl;
-    return Scalar(255,255,255);
-  }
+  cvtColor(hsv, rgb, CV_HSV2BGR);
+  return Scalar((int)rgb.at<cv::Vec3b>(0, 0)[0],
+		(int)rgb.at<cv::Vec3b>(0, 0)[1],
+		(int)rgb.at<cv::Vec3b>(0, 0)[2]);
 }
 
 int main (int argc, const char * argv[])
@@ -392,7 +390,7 @@ int main (int argc, const char * argv[])
         } else if(countTouch > 0) {
           trace(stream, still, grey, prevgrey, flow, uflow, cflow, frameCycleTouch);
           drawBallTrace(cflow, frameCycleTouch, ballRectangle);
-	  blend += cflow;
+	  blend += cflow - blend;
           imshow(to_string(countTouch), blend);
           frameCycleTouch++;
         }

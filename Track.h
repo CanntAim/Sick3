@@ -179,7 +179,7 @@
   */
 
   void drawOptFlowMap(const Mat& flow, Mat& cflowmap, int step,
-		      double, const Scalar& colorp, const Scalar& colorl);
+		      double, Scalar colorp, Scalar colorl);
 
   /* TRACES VIDEO MOVEMENT */
   /* 
