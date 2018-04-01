@@ -190,6 +190,7 @@
   /* flow - will contain copy of uflow.
   /* uflow - will capture result of calcOpticalFlowFarneback.
   /* cflow - will contain the drawn trace.
+  /* frame - frame count in current cycle.
 
   Produces a flow map of movement that occurs in video stream.
   */

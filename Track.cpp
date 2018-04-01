@@ -84,11 +84,12 @@ Rect2d ballBound(Vec3f &ball){
   return ballRectangle;
 }
 
-void drawBallTrace(Mat &frame, int frameCount, Rect2d ballRectangle){
+void drawBallTrace(Mat &frame, int frameCount,
+		   Rect2d ballRectangle){
   Point ballCenter = Point(
     ballRectangle.x+ballRectangle.width/2,
     ballRectangle.y+ballRectangle.height/2);
-  circle(frame, ballCenter, 10, Scalar(0,0,255), -1, 8);
+  circle(frame, ballCenter, 10, generateColor(frameCount), -1, 8);
 }
 
 void drawBall(Mat &frame, Rect2d ballRectangle){
@@ -216,7 +217,6 @@ void drawOptFlowMap(const Mat& flow, Mat& cflowmap, int step,
 		   double, Scalar colorp, Scalar colorl){
   for(int y = 0; y < cflowmap.rows; y += step){
     for(int x = 0; x < cflowmap.cols; x += step){
-      cout <<  colorl << endl;
       const Point2f& fxy = flow.at<Point2f>(y, x);
       line(cflowmap, Point(x,y), Point(cvRound(x+fxy.x), cvRound(y+fxy.y)), colorl);
       circle(cflowmap, Point(x,y), 2, colorp, -1);
