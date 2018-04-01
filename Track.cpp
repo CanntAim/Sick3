@@ -232,7 +232,7 @@ void trace(VideoCapture &stream, Mat &still,
   if(!prevgrey.empty()) {
     calcOpticalFlowFarneback(prevgrey, grey, uflow, 0.5, 3, 15, 3, 5, 1.2, 0);
     cvtColor(prevgrey, cflow, CV_GRAY2BGR);        // Use this to draw on capture frame.
-    //cflow = Mat::zeros(prevgrey.size(), CV_64FC3);   // Use this to draw on blank frame.
+    cflow.setTo(cv::Scalar(0,0,0));
     uflow.copyTo(flow);
     drawOptFlowMap(flow, cflow, 16, 1.5, Scalar(0, 255, 0), generateColor(frame));
   }
