@@ -219,7 +219,6 @@ void drawOptFlowMap(const Mat& flow, Mat& cflowmap, int step,
     for(int x = 0; x < cflowmap.cols; x += step){
       const Point2f& fxy = flow.at<Point2f>(y, x);
       line(cflowmap, Point(x,y), Point(cvRound(x+fxy.x), cvRound(y+fxy.y)), colorl);
-      circle(cflowmap, Point(x,y), 2, colorp, -1);
     }
   }
 }
