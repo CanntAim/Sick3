@@ -33,16 +33,6 @@ Rect findPerson(Mat &mask){
   return personRectangle;
 }
 
-tuple<Rect2d,Rect2d> findFeet(tuple<Point,Vec3f,int> &ball){
-  float radius = get<1>(ball)[2];
-  Point rightFoot(cvRound(get<1>(ball)[0] + radius), cvRound(get<1>(ball)[1] - 0.5*radius));
-  Point leftFoot(cvRound(get<1>(ball)[0] - 2*radius), cvRound(get<1>(ball)[1] - 0.5*radius));
-  Rect2d rightFootRectangle(rightFoot.x, rightFoot.y, radius, radius*2);
-  Rect2d leftFootRectangle(leftFoot.x, leftFoot.y, radius, radius*2);
-  return make_tuple(leftFootRectangle,rightFootRectangle);
-}
-
-
 tuple<Point,Vec3f,int> findBall(Mat &grey, Rect personRectangle, vector<tuple<Point,Vec3f,int>> &potentialBalls){
   vector<Vec3f> circles;
   HoughCircles(Mat(grey,personRectangle), circles, CV_HOUGH_GRADIENT, 1, grey.rows/8,200,25,0,100);
@@ -98,13 +88,6 @@ void drawBall(Mat &frame, Rect2d ballRectangle){
 
 void drawPerson(Mat &frame, Rect personRectangle){
   rectangle(frame, personRectangle.tl(), personRectangle.br(), Scalar(255,0,0), 2, 8, 0);
-}
-
-void drawFeet(Mat &frame, Rect2d &leftFoot, Rect2d &rightFoot){
-  // Left Foot Rectangle
-  rectangle(frame, leftFoot, Scalar(0,255,0), 2, 8, 0);
-  // Right Foot Rectangle
-  rectangle(frame, rightFoot, Scalar(0,255,0), 2, 8, 0);
 }
 
 int calculateDifference(int cur, int prev){
@@ -227,7 +210,7 @@ void trace(VideoCapture &stream, Mat &still,
 	   Mat &grey, Mat &prevgrey,
 	   Mat &flow, Mat &uflow, Mat &cflow, int frame){
   stream >> still;
-  cvtColor(still, grey, CV_BGR2GRAY);	  
+  cvtColor(still, grey, CV_BGR2GRAY);
   if(!prevgrey.empty()) {
     calcOpticalFlowFarneback(prevgrey, grey, uflow, 0.5, 3, 15, 3, 5, 1.2, 0);
     cvtColor(prevgrey, cflow, CV_GRAY2BGR);        // Use this to draw on capture frame.
@@ -241,7 +224,7 @@ Scalar generateColor(int frame){
   if(frame > 179){
     frame = 179;
   }
-  
+
   Mat hsv(1, 1, CV_8UC3, Scalar(2*frame, 255, 255));
   Mat rgb;
 
@@ -336,14 +319,8 @@ int main (int argc, const char * argv[])
         ballRectangle = ballBound(get<1>(ball));
 
         if(get<2>(ball)){
-          // Find Feet
-          feet = findFeet(ball);
-
           // Draw the Found Ball
           drawBall(frame, ballRectangle);
-
-          // Draw the found feet
-          drawFeet(frame, get<0>(feet), get<1>(feet));
 
           // Track Ball
           ballTracker->init(frame, ballRectangle);

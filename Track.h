@@ -28,16 +28,6 @@
   */
   void backgroundSubtraction(Ptr<BackgroundSubtractorMOG2> &pMOG2);
 
-  /* DRAW FEET */
-  /*
-  /* frame - which frame to draw on.
-  /* leftFoot - rectangle of left foot to draw.
-  /* leftFoot - rectangle of right foot to draw.
-
-  Draws a bounding box around the ball.
-  */
-  void drawFeet(Mat &frame, Rect2d &leftFoot, Rect2d &rightFoot);
-
   /* DRAW BALL */
   /*
   /* frame - which frame to draw on.
@@ -124,14 +114,6 @@
   */
   Rect2d ballBound(Vec3f &ball);
 
-  /* CALCULATE FINDFEET */
-  /*
-  /* ball - the ball between the left and right foot.
-
-  Get the bound around the person in the MOG2 mask.
-  */
-  tuple<Rect2d,Rect2d> findFeet(tuple<Point,Vec3f,int> &ball);
-
   /* CALCULATE FINDPERSON */
   /*
   /* mask - the mask created by the MOG2 algorithm.
@@ -182,8 +164,8 @@
 		      double, Scalar colorp, Scalar colorl);
 
   /* TRACES VIDEO MOVEMENT */
-  /* 
-  /* stream - video stream we are analyzing. 
+  /*
+  /* stream - video stream we are analyzing.
   /* still - current RGB frame.
   /* grey - current greyscale frame.
   /* prevgrev - previous greyscale frame.
@@ -201,7 +183,7 @@
 
   /* GENERATE COLOR ALONG GRADIENT */
   /*
-  /* frame - frame count in current cycle. 
+  /* frame - frame count in current cycle.
 
   Generates a color along gradient dynamically given frame counter.
   */
