@@ -24,6 +24,31 @@ Point P1(0,0);
 Point P2(0,0);
 bool clicked;
 
+const char * guid(){
+        srand (clock());
+        char GUID[40];
+        int t = 0;
+        char *szTemp = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
+        char *szHex = "0123456789ABCDEF-";
+        int nLen = strlen (szTemp);
+
+        for (t=0; t<nLen+1; t++)
+        {
+                int r = rand () % 16;
+                char c = ' ';
+
+                switch (szTemp[t])
+                {
+                case 'x': { c = szHex [r]; } break;
+                case 'y': { c = szHex [r & 0x03 | 0x08]; } break;
+                case '-': { c = '-'; } break;
+                case '4': { c = '4'; } break;
+                }
+                GUID[t] = ( t < nLen ) ? c : 0x00;
+        }
+        return GUID;
+}
+
 void checkBoundary(){
         if(crop.width>uncropped.cols-crop.x)
                 crop.width=uncropped.cols-crop.x;
@@ -358,7 +383,8 @@ int main (int argc, const char * argv[])
         // Flags
         bool tracking = false;
         bool dribbling = false;
-        bool automatic = false;
+        bool manual = false;
+        bool freeze = false;
 
         // Meta-data
         int lastTouch = 0;
@@ -383,9 +409,9 @@ int main (int argc, const char * argv[])
                 // Find Person
                 Rect personRectangle = findPerson(mask);
 
-                if(argc == 2 && strcmp(argv[0], "auto") == 0) {
-                        automatic = true;
-                } else if(argc == 2 && strcmp(argv[0], "auto") != 0) {
+                if(argc == 2 && strcmp(argv[1], "manual") == 0) {
+                        manual = true;
+                } else if(argc == 2 && strcmp(argv[1], "manual") != 0) {
                         printf("Invalid arguement. Exiting the program...\n");
                         exit(0);
                 } else if (argc > 2) {
@@ -393,7 +419,19 @@ int main (int argc, const char * argv[])
                         exit(0);
                 }
 
-                if(personRectangle.area() > 0 && !tracking && !automatic) {
+                if(manual && freeze) {
+                        setMouseCallback("frame", onMouse, NULL);
+                        while(freeze) {
+                                if(waitKey() == 's') {
+                                        imwrite(std::string("/home/vanya/Pictures/Sick3/balls/")
+                                                +guid()+std::string(".jpg"), cropped);
+                                } else if (waitKey() == 'f') {
+                                        freeze = false;
+                                }
+                        }
+                }
+
+                if(personRectangle.area() > 0 && !tracking && !manual) {
                         // Find Ball
                         ball = findBall(grey, personRectangle, potentialBalls);
                         ballRectangle = ballBound(get<1>(ball));
@@ -451,12 +489,17 @@ int main (int argc, const char * argv[])
                         }
                 }
 
+                namedWindow("frame", CV_WINDOW_AUTOSIZE);
                 imshow("frame", frame);
-                if(waitKey(1) >= 0) break;
+                if(waitKey(1) == 'f') {
+                        freeze = true;
+                } else if(waitKey(1) == 'q') {
+                        break;
+                }
                 std::swap(prevgrey, grey);
         }
 
-        // The camera will be deinitialized automatically in VideoCapture destructor
+        // The camera will be deinitialized manualally in VideoCapture destructor
 
         return EXIT_SUCCESS;
 }
