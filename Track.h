@@ -1,5 +1,7 @@
 #ifndef TRACK_H
   #include <iostream>
+  #include <stdio.h>
+  #include <stdlib.h>
   #include <typeinfo>
   #include <deque>
   #include <list>

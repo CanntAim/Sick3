@@ -24,31 +24,6 @@ Point P1(0,0);
 Point P2(0,0);
 bool clicked;
 
-const char * guid(){
-        srand (clock());
-        char GUID[40];
-        int t = 0;
-        char *szTemp = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
-        char *szHex = "0123456789ABCDEF-";
-        int nLen = strlen (szTemp);
-
-        for (t=0; t<nLen+1; t++)
-        {
-                int r = rand () % 16;
-                char c = ' ';
-
-                switch (szTemp[t])
-                {
-                case 'x': { c = szHex [r]; } break;
-                case 'y': { c = szHex [r & 0x03 | 0x08]; } break;
-                case '-': { c = '-'; } break;
-                case '4': { c = '4'; } break;
-                }
-                GUID[t] = ( t < nLen ) ? c : 0x00;
-        }
-        return GUID;
-}
-
 void checkBoundary(){
         if(crop.width>uncropped.cols-crop.x)
                 crop.width=uncropped.cols-crop.x;
@@ -64,7 +39,7 @@ void checkBoundary(){
 }
 
 void showImage(){
-        uncropped = cflow.clone();
+        uncropped = frame.clone();
         checkBoundary();
         if(crop.width>0&&crop.height>0) {
                 cropped=uncropped(crop);
@@ -358,7 +333,6 @@ int main (int argc, const char * argv[])
         vector<float> normalizedWeights = kernel(weights, 20);
 
         // Feet and Ball
-        tuple<Rect2d,Rect2d> feet;
         tuple<Point,Vec3f,int> ball;
         Rect2d ballRectangle;
         Rect2d ballRectangleOld;
@@ -391,6 +365,7 @@ int main (int argc, const char * argv[])
         int countTouch = 0;
         int frameCycleTouch = 0;
 
+
         for(;;) {
                 // Grab Frame
                 stream >> frame;
@@ -420,12 +395,30 @@ int main (int argc, const char * argv[])
                 }
 
                 if(manual && freeze) {
-                        setMouseCallback("frame", onMouse, NULL);
                         while(freeze) {
-                                if(waitKey() == 's') {
+                                if(waitKey(1) == 's') {
+                                        // Setup
+                                        time_t t;
+                                        char id[5];
+                                        srand((unsigned) time(&t));
+                                        snprintf(id, sizeof(id), "%d", rand());
+
+                                        // Save Cropped Ball Image
                                         imwrite(std::string("/home/vanya/Pictures/Sick3/balls/")
-                                                +guid()+std::string(".jpg"), cropped);
-                                } else if (waitKey() == 'f') {
+                                                + id + std::string(".jpg"), cropped);
+
+                                        // Set ballRectangle to crop
+                                        ballRectangle = crop;
+
+                                        // Draw the Found Ball
+                                        drawBall(frame, ballRectangle);
+
+                                        // Set Tracking Flag
+                                        tracking = true;
+
+                                        // Track Ball
+                                        ballTracker->init(frame, ballRectangle);
+                                } else if (waitKey(1) == 'f') {
                                         freeze = false;
                                 }
                         }
@@ -489,7 +482,9 @@ int main (int argc, const char * argv[])
                         }
                 }
 
+                // Set Window
                 namedWindow("frame", CV_WINDOW_AUTOSIZE);
+                setMouseCallback("frame", onMouse, 0);
                 imshow("frame", frame);
                 if(waitKey(1) == 'f') {
                         freeze = true;
