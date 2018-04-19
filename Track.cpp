@@ -332,7 +332,7 @@ int main (int argc, const char * argv[])
         weights.push_back(0);
         vector<float> normalizedWeights = kernel(weights, 20);
 
-        // Feet and Ball
+        // Ball
         tuple<Point,Vec3f,int> ball;
         Rect2d ballRectangle;
         Rect2d ballRectangleOld;
@@ -396,16 +396,19 @@ int main (int argc, const char * argv[])
 
                 if(manual && freeze) {
                         while(freeze) {
-                                if(waitKey(1) == 's') {
+                                if(waitKey(30) == 's') {
                                         // Setup
                                         time_t t;
-                                        char id[5];
+                                        char id_prefix[20];
+                                        char id_appendix[20];
                                         srand((unsigned) time(&t));
-                                        snprintf(id, sizeof(id), "%d", rand());
+                                        snprintf(id_prefix, sizeof(id_prefix), "%d", rand());
+                                        snprintf(id_appendix, sizeof(id_appendix), "%d", rand());
 
                                         // Save Cropped Ball Image
                                         imwrite(std::string("/home/vanya/Pictures/Sick3/balls/")
-                                                + id + std::string(".jpg"), cropped);
+                                                + id_prefix + std::string("-")
+                                                + id_appendix + std::string(".jpg"), cropped);
 
                                         // Set ballRectangle to crop
                                         ballRectangle = crop;
@@ -418,7 +421,7 @@ int main (int argc, const char * argv[])
 
                                         // Track Ball
                                         ballTracker->init(frame, ballRectangle);
-                                } else if (waitKey(1) == 'f') {
+                                } else if (waitKey(30) == 'f') {
                                         freeze = false;
                                 }
                         }
@@ -486,9 +489,9 @@ int main (int argc, const char * argv[])
                 namedWindow("frame", CV_WINDOW_AUTOSIZE);
                 setMouseCallback("frame", onMouse, 0);
                 imshow("frame", frame);
-                if(waitKey(1) == 'f') {
+                if(waitKey(30) == 'f') {
                         freeze = true;
-                } else if(waitKey(1) == 'q') {
+                } else if(waitKey(30) == 'q') {
                         break;
                 }
                 std::swap(prevgrey, grey);
