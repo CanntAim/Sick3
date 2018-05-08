@@ -1,6 +1,86 @@
-# Sick3
+# Sick3 | [home](https://cantaim.live/projects/sick3)
 
-# Summary
+## Summary
 
-Freestyle Football combo tracker. For details visit https://cantaim.live/projects/sick3
+Sick3 is Football Freestyle Combo Tracker proof-concept that aims to track basic trick combos that are composed of around the worlds, hop the worlds, and half around the worlds. We are not yet looking at more advanced No Touch combos or No Touch (multi-revolution) tricks for this first iteration. For examples as to what a basic freestyle combo may look like, refer to excellent video by learn2freestyle YouTube channel that helps demonstrate the idea:
 
+[![Basic Combo Example](http://img.youtube.com/vi/ipmbksUv81I/0.jpg)](http://www.youtube.com/watch?v=ipmbksUv81I)
+
+Definition of a standard combo is _two or tricks done consecutively with no extra touch in-between_. More advanced combos exist that essentially _skip a touch_, these are known as NT combos, but they are out-of-scope for this project.
+
+This project seeks to track fairly advanced body gestures without the use of stereo depth perceptive cameras that are more commonly used by gesture recognition tech like the Xbox Kinect and so on. Everything here works using regular camera footage.
+
+## Process Outline
+
+The following section will outline the general process we go through to identify a sequence of consecutive tricks. This project is still in progress so the details given here are subject to change. We give a brief summary of data pre-process module
+
+### Modules
+
+**Tracker** - Takes footage as input and outputs optical flow segments that capture motion between two touches.
+
+**Classifier** - Takes sequence of optical flow segments and classifies each as either being, an around the world, hop the world, half around the world, or kick-up.
+
+---
+
+#### Tracker
+
+The tracker can be in multiple states. The program states are defined below.
+
+##### States
+
+**Initial State** - We have not yet identified the ball or began tracking.
+
+**Tracking** - The ball has be identified and we have started tracking it.
+
+**Dribbling** - The ball which is being tracked is now being dribbled.
+
+In the _**Initial State**_ the program grabs frames from the video and does some preliminary image pre-processing.
+
+* RGB to Gray Conversion
+* Gaussian Blur
+
+We now apply background subtraction which produces a foreground mask. We use the Gaussian Mixture-based Background/Foreground Segmentation Algorithm as described in two papers by _Z.Zivkovic_, "Improved adaptive Gaussian Mixture Model for Background Subtraction" in 2004 and "Efficient Adaptive Density Estimation per Image Pixel for the Task of Background Subtraction" in 2006. One important feature of this algorithm is that it selects the appropriate number of Gaussian distribution for each pixel. It provides better adaptability to varying scenes due illumination changes, etc. We set the learning rate to zero to maintain a static background through out the execution of the program. This generally will work fine since the execution of our program is very short so we don't need to adjust for changing light conditions. Although keep in mind that it's possible that a sudden drastic change will be disruptive.
+
+_Note: There is an explicit requirement for us to have foreground objects out of frame when the first frame comes in._
+
+After obtaining the mask we apply a standard image cleaning technique. we first erode the image to delete all minor noise and then dilate. Additionally we smooth out the mask by applying a median blur.
+
+We now try and find the person in the frame by examining the mask. Our method **findPerson** discovers contours that exist in the mask and takes the largest one by area. This is because we assume the subject of the video is alone and in the fore most foreground. Due to perspective they will be largest object in the frame.
+
+Based on whether the user of the application selects manual or automatic ball selection the next steps may or may not matter. Selecting the ball manually or auto-selection will transition the program state into _**Tracking**_.
+
+Manual selection is self explanatory. For automatic selection the process is more involved but still relatively simple.
+
+To detect the ball we exploit the fact that the ball has a circular shape and apply a feature extraction technique called [Hough Transform](https://en.wikipedia.org/wiki/Hough_transform). We apply the feature search to the lower fifth of the bound box of the person. We select all circular shapes that might be the ball and over the course of several frames check that the feature is still present. The feature that exists sufficiently long first is the one we select.
+
+In the _**Tracking**_ state we set our tracker on the ball we either selected manually or automatically. OpenCV as of version 3.0 has several trackers built into the contribution library. Tracking algorithms are based on two primary models, **motion** and **appearance**. Motion models are based on maintaining object identity over continuous frames using location and velocity information on the object that is being tracked, basically predicting where the object will be next. Appearance models use knowledge of how the object looks to persist the identify of an object. This model extends on the motion model by using location, speed, and direction data to search the neighborhood of where the object is predict to be for something that looks similar to the object. Tracking algorithms unlike detection or recognition algorithms are on line, they are trained in real-time during run time.
+
+_The built-in algorithms:_
+
+* BOOSTING Tracker
+* MIL Tracker
+* KCF Tracker
+* TLD Tracker
+* MEDIANFLOW Tracker
+* GOTURN Tracker
+
+Out of the built in algorithms we are currently using _TLD_ (which stands for tracking, learning, and detection). From the author’s paper, “The tracker follows the object from frame to frame. The detector localizes all appearances that have been observed so far and corrects the tracker if necessary. The learning estimates detector’s errors and updates it to avoid these errors in the future.”.
+
+The algorithm does have some stability issues as it jumps around quite a bit (we fix this with smoothing). The flip side of this is that algorithm is able to track large motions and long term occlusion.
+
+Once we started tracking the ball we have to wait for the user to enter the _**Dribbling**_ state. The dribbling state is defined as the ball entering an oscillating vertical y-position trend in relation to time. The second order derivative of this metric is the velocity. We trigger the entry into this state by having the ball go past a certain vertical position (around knee height). Because generally human proportions are consistent this is a safe threshold to set using height information of the person which we get when finding the person.
+
+
+##### Smoothing and Segmentation
+
+As mentioned previously, The _TLD Tracker_ has a tendency to jump around a lot. This leads to position and velocity metrics that are less than reliable. To fix this we deploy a custom [smoothing](https://en.wikipedia.org/wiki/Smoothing) method.
+
+To smooth we first need to populate a size _k_ window(s) with raw position, velocity, and acceleration information. To get velocity from position we simply take difference between the current position and the previous position. The same is repeated to get acceleration but using velocity. A caveat is that we need at _least_ two items in our position window before we can calculate the first velocity item. This means that the velocity is calculated on delay of one frame and acceleration on a delay of two frames. The window operates as a queue that pushes new frames in and pops frames out when the queue fills up. This means that there is _start-up time_ (aka the time it takes the queue to initially fill up).
+
+Alongside the raw data windows we have a smoothing window to which we pass a discrete weight function and the raw data. The size of the weight function will be adjusted to be size of window, we do simple linear interpolation to find float point values between the weights that are provided.
+
+_Note: Size of Kernel = Size of Raw Data Window(s) = Size of Smoothing Window_
+
+The smoothing function is produced on heavy delay since we need to wait for the queue start-up phase to finish at which point we are calculating velocity value for the frame that will typically be _(Window Size)/2_ frames in the past from the current frame. We can pick any kind of weight distribution, even uniform, although realistically we will want something closer to normal.
+
+Another simple trick we use to avoid irregular results is throwing away data points that deviate to far from the prior trajectory. If the position of the ball in the current frame is unrealistically far from where it was prior we don't record the instantaneous velocity value that got it to that outlying position. Off course the tracker may stay in the incorrect position for multiple frames, Because we are looking at velocity, and the actual change in position between frames at an fps of 30 to 120 is small, these values while incorrect are still generally closer to what they should be.
