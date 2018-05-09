@@ -2,13 +2,15 @@
 
 ## Summary
 
-Sick3 is Football Freestyle Combo Tracker proof-concept that aims to track basic trick combos that are composed of around the worlds, hop the worlds, and half around the worlds. We are not yet looking at more advanced No Touch combos or No Touch (multi-revolution) tricks for this first iteration. For examples as to what a basic freestyle combo may look like, refer to excellent video by learn2freestyle YouTube channel that helps demonstrate the idea:
+Sick3 is Football Freestyle Combo Tracker proof-concept that aims to track basic trick combos that are composed of around the worlds, hop the worlds, and half around the worlds. We are not yet looking at more advanced No Touch combos or No Touch (multi-revolution) tricks for this first iteration. For examples as to what a basic freestyle combo may look like, refer to excellent video by YourHowToDo YouTube channel that helps demonstrate the idea:
 
-[![Basic Combo Example](http://img.youtube.com/vi/ipmbksUv81I/0.jpg)](http://www.youtube.com/watch?v=ipmbksUv81I)
+ [![Basic Combo Example](http://img.youtube.com/vi/2Cb8T9QvvN4/0.jpg)](https://www.youtube.com/watch?v=2Cb8T9QvvN4)
 
 Definition of a standard combo is _two or tricks done consecutively with no extra touch in-between_. More advanced combos exist that essentially _skip a touch_, these are known as NT combos, but they are out-of-scope for this project.
 
-This project seeks to track fairly advanced body gestures without the use of stereo depth perceptive cameras that are more commonly used by gesture recognition tech like the Xbox Kinect and so on. Everything here works using regular camera footage.
+## Technical Goal
+
+This project seeks to track fairly advanced body gestures without the use of stereo depth perceptive cameras that are more commonly used by gesture recognition tech like the Xbox Kinect and so on. Everything here works using regular camera footage. This is of high value since most consumer level phone cameras lack the duel cameras necessary to detect depth.  
 
 ## Process Outline
 
@@ -20,13 +22,9 @@ The following section will outline the general process we go through to identify
 
 **Classifier** - Takes sequence of optical flow segments and classifies each as either being, an around the world, hop the world, half around the world, or kick-up.
 
----
-
 #### Tracker
 
 The tracker can be in multiple states. The program states are defined below.
-
-##### States
 
 **Initial State** - We have not yet identified the ball or began tracking.
 
@@ -79,8 +77,17 @@ To smooth we first need to populate a size _k_ window(s) with raw position, velo
 
 Alongside the raw data windows we have a smoothing window to which we pass a discrete weight function and the raw data. The size of the weight function will be adjusted to be size of window, we do simple linear interpolation to find float point values between the weights that are provided.
 
-_Note: Size of Kernel = Size of Raw Data Window(s) = Size of Smoothing Window_
-
 The smoothing function is produced on heavy delay since we need to wait for the queue start-up phase to finish at which point we are calculating velocity value for the frame that will typically be _(Window Size)/2_ frames in the past from the current frame. We can pick any kind of weight distribution, even uniform, although realistically we will want something closer to normal.
 
-Another simple trick we use to avoid irregular results is throwing away data points that deviate to far from the prior trajectory. If the position of the ball in the current frame is unrealistically far from where it was prior we don't record the instantaneous velocity value that got it to that outlying position. Off course the tracker may stay in the incorrect position for multiple frames, Because we are looking at velocity, and the actual change in position between frames at an fps of 30 to 120 is small, these values while incorrect are still generally closer to what they should be.
+Another simple trick we use to avoid irregular results is throwing away data points that deviate to far from the prior trajectory. If the position of the ball in the current frame is unrealistically far from where it was prior we don't record the instantaneous velocity value that got it to that outlying position. Off course the tracker may stay in the incorrect position for multiple frames, Because we are looking at velocity, and the actual change in position between frames at an fps of 30 to 120 is small, these values while incorrect are still generally closer to what they should be and thus don't throw off the averaging.
+
+Using our smoothed curve we segment our video based on when the balls velocity flips from the positive to negative direction. This happens whenever the ball is kicked back up.
+
+##### Capturing Optical Flow Map
+
+OpenCV has a built in module for doing optical flow using various methods. We use the Gunnar Farneback’s Method. While there isn't a good explanation of that particular method in the documentation there is a decent explanation of optical flow using [Lucas Kanade Method](https://docs.opencv.org/3.3.1/d7/d8b/tutorial_py_lucas_kanade.html).
+Optical flow operates on the assumption that A) The pixel intensities of an object do not change between consecutive frames. B) Neighboring pixels have similar motion.
+
+We draw the flow map for the entire area of the image, currently, this will be changed to only draw the map on the part that is relevant. That part is pixels that within the area of foreground mask as calculated by our earlier background subtraction.
+
+We want to track flow for the duration of time between two touches. Because of this we want to add the difference of current image to the **summation** of all images up to now. This additive process reset after every touch. We also want to account for the temporal component to motion by coloring the map differently along some generic gradient for each frame. We use the HSV scale where each frame we increment the Hue by some amount.
