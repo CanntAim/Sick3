@@ -22,7 +22,7 @@ The following section will outline the general process we go through to identify
 
 **Classifier** - Takes sequence of optical flow segments and classifies each as either being, an around the world, hop the world, half around the world, or kick-up.
 
-#### Tracker
+### Tracker
 
 The tracker can be in multiple states. The program states are defined below.
 
