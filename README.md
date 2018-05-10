@@ -1,12 +1,10 @@
 # Sick3
-
-Freestyle Football Combo Tracking
 ---
 ![Freestyle Clip](https://github.com/CanntAim/Sick3/blob/switch-to-optical-flow/documentation/test_freestyle_normal.gif?raw=true)
 
 ## Summary
 
-Sick3 is Football Freestyle Combo Tracker proof-concept that aims to track basic trick combos that are composed of around the worlds, hop the worlds, and half around the worlds. We are not yet looking at more advanced No Touch combos or No Touch (multi-revolution) tricks for this first iteration. For examples as to what a basic freestyle combo may look like, refer to this excellent [video](https://www.youtube.com/watch?v=2Cb8T9QvvN4) by YourHowToDo YouTube channel that helps demonstrate the idea. Definition of a standard combo is _two or tricks done consecutively with no extra touch in-between_. More advanced combos exist that essentially _skip a touch_, these are known as NT combos, but they are out-of-scope for this project.
+Sick3 is Football Freestyle Combo Tracker proof-concept that aims to track basic trick combos that are composed of around the worlds, hop the worlds, and half around the worlds. We are not yet looking at more advanced No Touch combos or No Touch (multi-revolution) tricks for this first iteration. For examples as to what a basic freestyle combo may look like, refer to this excellent [video](https://www.youtube.com/watch?v=2Cb8T9QvvN4) by _YourHowToDo_ YouTube channel that helps demonstrate the idea. Definition of a standard combo is _two or tricks done consecutively with no extra touch in-between_. More advanced combos exist that essentially _skip a touch_, these are known as NT combos, but they are out-of-scope for this project.
 
 ## Technical Goal
 
@@ -34,8 +32,8 @@ The tracker can be in multiple states. The program states are defined below.
 
 In the _**Initial State**_ the program grabs frames from the video and does some preliminary image pre-processing.
 
-* RGB to Gray Conversion
-* Gaussian Blur
+* _RGB to Gray Conversion_
+* _Gaussian Blur_
 
 We now apply background subtraction which produces a foreground mask. We use the Gaussian Mixture-based Background/Foreground Segmentation Algorithm as described in two papers by _Z.Zivkovic_, "Improved adaptive Gaussian Mixture Model for Background Subtraction" in 2004 and "Efficient Adaptive Density Estimation per Image Pixel for the Task of Background Subtraction" in 2006. One important feature of this algorithm is that it selects the appropriate number of Gaussian distribution for each pixel. It provides better adaptability to varying scenes due illumination changes, etc. We set the learning rate to zero to maintain a static background through out the execution of the program. This generally will work fine since the execution of our program is very short so we don't need to adjust for changing light conditions. Although keep in mind that it's possible that a sudden drastic change will be disruptive.
 
