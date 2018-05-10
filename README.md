@@ -6,11 +6,7 @@ Freestyle Football Combo Tracking
 
 ## Summary
 
-Sick3 is Football Freestyle Combo Tracker proof-concept that aims to track basic trick combos that are composed of around the worlds, hop the worlds, and half around the worlds. We are not yet looking at more advanced No Touch combos or No Touch (multi-revolution) tricks for this first iteration. For examples as to what a basic freestyle combo may look like, refer to excellent video by YourHowToDo YouTube channel that helps demonstrate the idea:
-
- [![Basic Combo Example](http://img.youtube.com/vi/2Cb8T9QvvN4/0.jpg)](https://www.youtube.com/watch?v=2Cb8T9QvvN4)
-
-Definition of a standard combo is _two or tricks done consecutively with no extra touch in-between_. More advanced combos exist that essentially _skip a touch_, these are known as NT combos, but they are out-of-scope for this project.
+Sick3 is Football Freestyle Combo Tracker proof-concept that aims to track basic trick combos that are composed of around the worlds, hop the worlds, and half around the worlds. We are not yet looking at more advanced No Touch combos or No Touch (multi-revolution) tricks for this first iteration. For examples as to what a basic freestyle combo may look like, refer to excellent [video]((https://www.youtube.com/watch?v=2Cb8T9QvvN4) by YourHowToDo YouTube channel that helps demonstrate the idea. Definition of a standard combo is _two or tricks done consecutively with no extra touch in-between_. More advanced combos exist that essentially _skip a touch_, these are known as NT combos, but they are out-of-scope for this project.
 
 ## Technical Goal
 
@@ -90,3 +86,9 @@ We want to track flow for the duration of time between two touches. Because of t
 
 ###### Resulting Flow Map
 ![flowmap](https://github.com/CanntAim/Sick3/blob/switch-to-optical-flow/documentation/htw_flowmap.jpg?raw=true)
+
+Please keep in mind that the work here is in progress. The results of our tracker are currently not ideal and there will be on going work to improve it. This is at best in pre-alpha phase.
+
+### Classifier
+
+TODO
