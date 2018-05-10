@@ -1,4 +1,8 @@
-# Sick3 | [home](https://cantaim.live/projects/sick3)
+# Sick3
+
+Freestyle Football Combo Tracking
+---
+![Freestyle Clip](https://github.com/CanntAim/Sick3/blob/switch-to-optical-flow/documentation/test_freestyle_normal.gif?raw=true)
 
 ## Summary
 
@@ -49,12 +53,12 @@ In the _**Tracking**_ state we set our tracker on the ball we either selected ma
 
 _The built-in algorithms:_
 
-* BOOSTING Tracker
-* MIL Tracker
-* KCF Tracker
-* TLD Tracker
-* MEDIANFLOW Tracker
-* GOTURN Tracker
+* _BOOSTING Tracker_
+* _MIL Tracker_
+* _KCF Tracker_
+* _TLD Tracker_
+* _MEDIANFLOW Tracker_
+* _GOTURN Tracker_
 
 Out of the built in algorithms we are currently using _TLD_ (which stands for tracking, learning, and detection). From the author’s paper, “The tracker follows the object from frame to frame. The detector localizes all appearances that have been observed so far and corrects the tracker if necessary. The learning estimates detector’s errors and updates it to avoid these errors in the future.”. The algorithm does have some stability issues as it jumps around quite a bit (we fix this with smoothing). The flip side of this is that algorithm is able to track large motions and long term occlusion.
 
@@ -79,4 +83,10 @@ Optical flow operates on the assumption that A) The pixel intensities of an obje
 
 We draw the flow map for the entire area of the image, currently, this will be changed to only draw the map on the part that is relevant. That part is pixels that within the area of foreground mask as calculated by our earlier background subtraction.
 
-We want to track flow for the duration of time between two touches. Because of this we want to add the difference of current image to the **summation** of all images up to now. This additive process reset after every touch. We also want to account for the temporal component to motion by coloring the map differently along some generic gradient for each frame. We use the HSV scale where each frame we increment the Hue by some amount.
+We want to track flow for the duration of time between two touches. Because of this we want to add the difference of current image to the **summation** of all images up to now. This additive process reset after every touch. We also want to account for the temporal component to motion by coloring the map differently along some generic gradient for each frame. We use the HSV scale where each frame we increment the Hue by some amount. The result is shown below:
+
+###### Original Segmented Video
+![htw](https://github.com/CanntAim/Sick3/blob/switch-to-optical-flow/documentation/htw.gif?raw=true)
+
+###### Resulting Flow Map
+![flowmap](https://github.com/CanntAim/Sick3/blob/switch-to-optical-flow/documentation/htw_flowmap.jpg?raw=true)
