@@ -1,4 +1,4 @@
-# Sick3
+# Sick3 | [Project Home](https://cantaim.live/projects/sick3)
 ---
 ![Freestyle Clip](https://github.com/CanntAim/Sick3/blob/switch-to-optical-flow/documentation/test_freestyle_normal.gif?raw=true)
 
