@@ -319,7 +319,7 @@ Scalar generateColor(int frame){
 
 int main (int argc, const char * argv[])
 {
-        VideoCapture stream("/home/vanya/Videos/Sick3/test_improved_downsample.avi"); // open the default camera (0) or file path
+        VideoCapture stream("/home/vanya/Videos/Sick3/kemari_test_0/test_improved_downsample.avi"); // open the default camera (0) or file path
         if(!stream.isOpened()) // check if we succeeded
                 return -1;
 
