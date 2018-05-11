@@ -37,11 +37,17 @@ In the _**Initial State**_ the program grabs frames from the video and does some
 
 We now apply background subtraction which produces a foreground mask. We use the Gaussian Mixture-based Background/Foreground Segmentation Algorithm as described in two papers by _Z.Zivkovic_, published in 2006."_Improved adaptive Gaussian Mixture Model for Background Subtraction_" and in 2004 "_Efficient Adaptive Density Estimation per Image Pixel for the Task of Background Subtraction_" One important feature of this algorithm is that it selects the appropriate number of Gaussian distribution for each pixel. It provides better adaptability to varying scenes due illumination changes, etc. We set the learning rate to zero to maintain a static background through out the execution of the program. This generally will work fine since the execution of our program is very short so we don't need to adjust for changing light conditions. Although keep in mind that it's possible that a sudden drastic change will be disruptive.
 
+###### Foreground Mask
+![Mask](https://raw.githubusercontent.com/CanntAim/Sick3/switch-to-optical-flow/documentation/mask.png)
+
 _Note: There is an explicit requirement for us to have foreground objects out of frame when the first frame comes in._
 
 After obtaining the mask we apply a standard image cleaning technique. we first erode the image to delete all minor noise and then dilate. Additionally we smooth out the mask by applying a median blur. We now try and find the person in the frame by examining the mask. Our method **findPerson** discovers contours that exist in the mask and takes the largest one by area. This is because we assume the subject of the video is alone and in the fore most foreground. Due to perspective they will be largest object in the frame.
 
-Based on whether the user of the application selects manual or automatic ball selection the next steps may or may not matter. Selecting the ball manually or auto-selection will transition the program state into _**Tracking**_. Manual selection is self explanatory. For automatic selection the process is more involved but still relatively simple. To detect the ball we exploit the fact that the ball has a circular shape and apply a feature extraction technique called [Hough Transform](https://en.wikipedia.org/wiki/Hough_transform). We apply the feature search to the lower fifth of the bound box of the person. We select all circular shapes that might be the ball and over the course of several frames check that the feature is still present. The feature that exists sufficiently long first is the one we select
+Based on whether the user of the application selects manual or automatic ball selection the next steps may or may not matter. Selecting the ball manually or auto-selection will transition the program state into _**Tracking**_. Manual selection is self explanatory. For automatic selection the process is more involved but still relatively simple. To detect the ball we exploit the fact that the ball has a circular shape and apply a feature extraction technique called [Hough Transform](https://en.wikipedia.org/wiki/Hough_transform). We apply the feature search to the lower fifth of the bound box of the person. We select all circular shapes that might be the ball and over the course of several frames check that the feature is still present. The feature that exists sufficiently long first is the one we select.
+
+###### Ball Feature Extraction
+![Found](https://raw.githubusercontent.com/CanntAim/Sick3/switch-to-optical-flow/documentation/found_ball.png)
 
 In the _**Tracking**_ state we set our tracker on the ball we either selected manually or automatically. OpenCV as of version 3.0 has several trackers built into the contribution library. Tracking algorithms are based on two primary models, **motion** and **appearance**. Motion models are based on maintaining object identity over continuous frames using location and velocity information on the object that is being tracked, basically predicting where the object will be next. Appearance models use knowledge of how the object looks to persist the identify of an object. This model extends on the motion model by using location, speed, and direction data to search the neighborhood of where the object is predict to be for something that looks similar to the object. Tracking algorithms unlike detection or recognition algorithms are on line, they are trained in real-time during run time.
 
@@ -54,7 +60,11 @@ _The built-in algorithms:_
 * _MEDIANFLOW Tracker_
 * _GOTURN Tracker_
 
-Out of the built in algorithms we are currently using _TLD_ (which stands for tracking, learning, and detection). From the author’s paper, “The tracker follows the object from frame to frame. The detector localizes all appearances that have been observed so far and corrects the tracker if necessary. The learning estimates detector’s errors and updates it to avoid these errors in the future.”. The algorithm does have some stability issues as it jumps around quite a bit (we fix this with smoothing). The flip side of this is that algorithm is able to track large motions and long term occlusion.
+Out of the built in algorithms we are currently using _TLD_ (which stands for tracking, learning, and detection). From the author’s paper:
+
+>“_The tracker follows the object from frame to frame. The detector localizes all appearances that have been observed so far and corrects the tracker if necessary. The learning estimates detector’s errors and updates it to avoid these errors in the future._”
+
+The algorithm does have some stability issues as it jumps around quite a bit (we fix this with smoothing). The flip side of this is that algorithm is able to track large motions and long term occlusion.
 
 Once we started tracking the ball we have to wait for the user to enter the _**Dribbling**_ state. The dribbling state is defined as the ball entering an oscillating vertical y-position trend in relation to time. The second order derivative of this metric is the velocity. We trigger the entry into this state by having the ball go past a certain vertical position (around knee height). Because generally human proportions are consistent this is a safe threshold to set using height information of the person which we get when finding the person.
 
