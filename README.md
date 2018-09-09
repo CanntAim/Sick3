@@ -2,6 +2,53 @@
 ---
 ![Freestyle Clip](https://github.com/CanntAim/Sick3/blob/switch-to-optical-flow/documentation/test_freestyle_normal.gif?raw=true)
 
+## Installation
+
+Dependencies:
+
+* [GRT](https://github.com/nickgillian/grt)
+* [OpenCV](https://github.com/opencv/opencv)
+* [OpenCV Contrib](https://github.com/opencv/opencv_contrib)
+
+Excerpt from [Mirki Kiefer's blog](https://mirkokiefer.com/cmake-by-example-f95eb47d45b1?gi=6feac9901e8c)
+
+CMake supports out-of-source builds — so all our compiled code goes into a directory separate to the sources.
+
+To start a build we create a new folder:
+
+```bash
+mkdir _build
+cd _build
+```
+
+And call cmake with the path to the project’s root (in this case the parent folder):
+
+```bash
+cmake ..
+```
+
+This will generate build scripts using the default generator — on Linux/OSX this should be Makefiles.
+
+By default cmake will install our build into the system directories.
+ To define a custom install directory we simply pass it to cmake:
+
+```bash
+cmake .. -DCMAKE_INSTALL_PREFIX=../_install
+```
+
+To run the build script you can simply use the Makefile:
+
+```bash
+make
+make install
+```
+
+We can now run our binary from the install directory:
+
+```bash
+../_install/bin/myapp
+```
+
 ## Summary
 
 Sick3 is Football Freestyle Combo Tracker proof-concept that aims to track basic trick combos that are composed of around the worlds, hop the worlds, and half around the worlds. We are not yet looking at more advanced No Touch combos or No Touch (multi-revolution) tricks for this first iteration. For examples as to what a basic freestyle combo may look like, refer to this excellent [video](https://www.youtube.com/watch?v=2Cb8T9QvvN4) by _YourHowToDo_ YouTube channel that helps demonstrate the idea. Definition of a standard combo is _two or tricks done consecutively with no extra touch in-between_. More advanced combos exist that essentially _skip a touch_, these are known as NT combos, but they are out-of-scope for this project.
