@@ -10,7 +10,9 @@ Dependencies:
 * [OpenCV](https://github.com/opencv/opencv)
 * [OpenCV Contrib](https://github.com/opencv/opencv_contrib)
 
-Excerpt from [Mirki Kiefer's blog](https://mirkokiefer.com/cmake-by-example-f95eb47d45b1?gi=6feac9901e8c)
+Building from Cmake:
+
+_Excerpt from [Mirki Kiefer's blog](https://mirkokiefer.com/cmake-by-example-f95eb47d45b1?gi=6feac9901e8c)_
 
 CMake supports out-of-source builds — so all our compiled code goes into a directory separate to the sources.
 
@@ -46,7 +48,7 @@ make install
 We can now run our binary from the install directory:
 
 ```bash
-../_install/bin/myapp
+../_install/bin/sick3core
 ```
 
 ## Summary
